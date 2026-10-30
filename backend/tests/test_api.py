@@ -20,7 +20,8 @@ QUAKE = {"lat": 49.0, "lng": -123.0, "properties": {"magnitude": 3.1, "depth": 1
 
 @pytest.fixture
 def settings():
-    return Settings(firms_map_key="test", run_worker=False)
+    # Explicit values so tests never pick up real keys from backend/.env
+    return Settings(firms_map_key="test", ors_api_key="", redis_url="", run_worker=False)
 
 
 @pytest.fixture
@@ -96,9 +97,6 @@ def test_route_requires_key(client):
     res = client.post("/api/route/driving-car", json={"coordinates": [[0, 0], [1, 1]]})
     assert res.status_code == 503
 
-
-def test_weather_validates_params(client):
-    assert client.get("/api/weather?lat=abc&lon=1").status_code == 400
 
 
 def test_parse_firms_csv_filters_by_area_and_confidence():

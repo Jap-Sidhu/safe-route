@@ -1,4 +1,4 @@
-"""SafeRoute API: cached hazard data plus server-side proxies for routing and weather."""
+"""SafeRoute API: cached hazard data plus a server-side routing proxy."""
 
 import logging
 import os
@@ -10,7 +10,7 @@ from flask import Flask, abort, jsonify, request, send_from_directory
 
 load_dotenv()
 
-from cache import get_json, make_cache, set_json  # noqa: E402
+from cache import get_json, make_cache  # noqa: E402
 from config import KEY_FIRES, KEY_QUAKES, Settings  # noqa: E402
 from refresher import refresh_once, start_worker  # noqa: E402
 
@@ -18,7 +18,6 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(asctime)s %(
 
 ORS_URL = "https://api.openrouteservice.org/v2/directions/{profile}/geojson"
 ORS_PROFILES = {"driving-car", "driving-hgv"}
-WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather"
 DIST_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 
@@ -86,30 +85,6 @@ def create_app(cache=None, settings: Settings | None = None) -> Flask:
             return jsonify(error="Routing service is unreachable right now."), 502
         return app.response_class(upstream.content, status=upstream.status_code,
                                   mimetype=upstream.headers.get("Content-Type", "application/json"))
-
-    @app.get("/api/weather")
-    def weather():
-        try:
-            lat = round(float(request.args["lat"]), 2)
-            lon = round(float(request.args["lon"]), 2)
-        except (KeyError, ValueError):
-            return jsonify(error="Pass numeric 'lat' and 'lon' query parameters."), 400
-        if not settings.openweather_api_key:
-            return jsonify(error="Weather is not configured (OPENWEATHER_API_KEY missing)."), 503
-
-        key = f"weather:{lat}:{lon}"
-        cached = get_json(cache, key)
-        if cached is not None:
-            return jsonify(cached)
-        try:
-            upstream = requests.get(WEATHER_URL, params={
-                "lat": lat, "lon": lon, "appid": settings.openweather_api_key, "units": "metric"}, timeout=10)
-            data = upstream.json()
-        except (requests.RequestException, ValueError):
-            return jsonify(error="Weather service is unreachable right now."), 502
-        if upstream.ok:
-            set_json(cache, key, data, settings.weather_ttl)
-        return jsonify(data), upstream.status_code
 
     # Serve the built React app from the same origin, so the frontend can call /api directly.
     @app.get("/", defaults={"path": ""})

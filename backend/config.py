@@ -15,14 +15,12 @@ def _int(name: str, default: int) -> int:
 class Settings:
     firms_map_key: str = field(default_factory=lambda: os.getenv("FIRMS_MAP_KEY", ""))
     ors_api_key: str = field(default_factory=lambda: os.getenv("ORS_API_KEY", ""))
-    openweather_api_key: str = field(default_factory=lambda: os.getenv("OPENWEATHER_API_KEY", ""))
     redis_url: str = field(default_factory=lambda: os.getenv("REDIS_URL", ""))
 
     # How often the background worker refreshes hazard data, and how long cached data lives.
     refresh_interval: int = field(default_factory=lambda: _int("REFRESH_INTERVAL_SECONDS", 600))
     cache_ttl: int = field(default_factory=lambda: _int("CACHE_TTL_SECONDS", 1800))
     lock_ttl: int = field(default_factory=lambda: _int("REFRESH_LOCK_SECONDS", 120))
-    weather_ttl: int = field(default_factory=lambda: _int("WEATHER_TTL_SECONDS", 600))
 
     # NASA FIRMS: days of detections to pull (1-10) and minimum fire radiative power (MW).
     firms_days: int = field(default_factory=lambda: _int("FIRMS_DAYS", 2))

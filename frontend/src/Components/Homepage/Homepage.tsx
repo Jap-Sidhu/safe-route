@@ -6,7 +6,6 @@ import './Homepage.css';
 import Hamburger from '../Navigation/Hamburger';
 import Clouds from "./Clouds/Clouds";
 import Mountains from "./Mountains/Mountains";
-import StatusBar from "./StatusBar/StatusBar";
 
 interface PageProps {
     isSidebarActive: boolean;
@@ -42,8 +41,6 @@ function Homepage({ isSidebarActive, toggleSidebar}: PageProps) {
                     <Link to="/SafetyGuide/Earthquake" className="btn btn-guide">Safety Guide</Link>
                 </div>
 
-                {/* Status bar (weather) */}
-                <StatusBar />
             </main>
         </>
     );
