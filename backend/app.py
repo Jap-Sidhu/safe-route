@@ -33,14 +33,15 @@ def create_app(cache=None, settings: Settings | None = None) -> Flask:
         start_worker(cache, settings)
 
     def hazard_response(key: str):
-        payload = get_json(cache, key)
-        if payload is None:
+        raw = cache.get(key)
+        if raw is None:
             # Cold start: nothing cached yet, so refresh this dataset inline once.
             refresh_once(cache, settings, only=key)
-            payload = get_json(cache, key)
-        if payload is None:
+            raw = cache.get(key)
+        if raw is None:
             return jsonify(error="Hazard data is temporarily unavailable. Try again in a minute."), 503
-        res = jsonify(payload)
+        # The cache already holds serialized JSON, so send it as-is instead of decoding and re-encoding.
+        res = app.response_class(raw, mimetype="application/json")
         res.headers["Cache-Control"] = "public, max-age=60"
         return res
 

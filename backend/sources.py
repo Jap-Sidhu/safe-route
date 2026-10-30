@@ -3,6 +3,7 @@
 import csv
 import io
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -56,9 +57,8 @@ def fetch_fires(map_key: str, days: int = 2, min_frp: float = 0.0) -> list[dict]
     if not map_key:
         raise SourceError("FIRMS_MAP_KEY is not set")
     area = ",".join(str(v) for v in FIRE_BBOX)
-    fires: list[dict] = []
-    ok = 0
-    for source in FIRMS_SOURCES:
+
+    def fetch_source(source: str) -> list[dict] | None:
         url = FIRMS_URL.format(key=map_key, source=source, area=area, days=max(1, min(days, 10)))
         try:
             res = requests.get(url, timeout=TIMEOUT)
@@ -66,13 +66,17 @@ def fetch_fires(map_key: str, days: int = 2, min_frp: float = 0.0) -> list[dict]
             # FIRMS reports bad keys and quota errors as plain text with a 200 status.
             if not res.text.startswith("latitude"):
                 raise SourceError(res.text[:120])
-            fires.extend(parse_firms_csv(res.text, min_frp))
-            ok += 1
+            return parse_firms_csv(res.text, min_frp)
         except Exception as exc:  # noqa: BLE001
             log.warning("FIRMS %s failed: %s", source, exc)
-    if ok == 0:
+            return None
+
+    # Each satellite is a separate request, so fetch them at the same time.
+    with ThreadPoolExecutor(max_workers=len(FIRMS_SOURCES)) as pool:
+        results = list(pool.map(fetch_source, FIRMS_SOURCES))
+    if all(r is None for r in results):
         raise SourceError("all FIRMS sources failed")
-    return fires
+    return [fire for r in results if r for fire in r]
 
 
 def normalize_quakes(geojson: dict) -> list[dict]:

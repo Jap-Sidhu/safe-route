@@ -1,104 +1,204 @@
-# SafeRoute
+<div align="center">
 
-Real-time wildfire and earthquake map for Canada, with evacuation routes to the nearest safe zone.
+# 🛡️ SafeRoute
 
-![Python](https://img.shields.io/badge/Python-Flask-black?logo=flask) ![Redis](https://img.shields.io/badge/Cache-Redis-DC382D?logo=redis&logoColor=white) ![React](https://img.shields.io/badge/React-TypeScript-61DAFB?logo=react&logoColor=black) ![Leaflet](https://img.shields.io/badge/Map-Leaflet-199900?logo=leaflet&logoColor=white)
+**See active wildfires and earthquakes across Canada, then find the fastest way out.**
 
-![SafeRoute map showing wildfire detections across Canada](docs/screenshot.jpg)
+[How it works](#how-it-works) · [Benchmarks](#benchmarks) · [Run it locally](#run-it-locally)
 
-SafeRoute pulls near-real-time **NASA FIRMS** satellite fire detections and **USGS** earthquake data into one interactive map. You can search for a place, filter by hazard type and magnitude, use your location, and get **evacuation routes** from a fire to nearby hospitals, emergency centres and towns through OpenRouteService.
+<img src="docs/screenshot.jpg" alt="SafeRoute map with clustered wildfire detections across Canada" width="860">
 
-> **Group project.** SafeRoute started as the Disaster Alert System, built by a team of four for CMPT 276 (Introduction to Software Engineering) at Simon Fraser University in Summer 2025, where it won the course's **Teaching Team Award**. This repository is my continuation of it. I added the Flask API, the Redis cache and refresh pipeline, and moved every API key to the server.
+</div>
 
-## Features
+---
 
-- **Live hazards.** Wildfire detections (VIIRS, high/nominal confidence) and 30 days of earthquakes, refreshed every 10 minutes.
-- **Evacuation routing.** Finds candidate safe zones around a fire and ranks car and heavy-vehicle routes by distance, time and safety score.
-- **Search and filters.** Place search through Nominatim (OpenStreetMap), fire/earthquake filter, minimum magnitude slider.
-- **Safety guides.** Short wildfire and earthquake preparedness pages.
+## Why SafeRoute
 
-## Architecture
+During wildfire season the information people need is spread across a lot of places: satellite fire data in one, earthquake feeds in another, and a regular maps app that knows nothing about either. SafeRoute brings it together. You open one map and see what's burning or shaking near you. Click a fire, and it finds nearby hospitals, emergency centres and towns and ranks driving routes to them.
+
+## What you can do
+
+| | |
+|---|---|
+| 🔥 **Track wildfires** | Satellite heat detections from two NASA VIIRS satellites, kept to high and nominal confidence, clustered so a whole province stays readable |
+| 🌎 **Track earthquakes** | 30 days of USGS events with magnitude, depth, tsunami flag and a link to the official report |
+| 🧭 **Plan an evacuation** | Pick a fire and get up to three ranked routes (car and heavy vehicle) to safe zones, with distance, drive time and a safety score |
+| 🔎 **Search and filter** | Jump to any place, show fires or earthquakes only, set a minimum magnitude, or centre on your own location |
+| 📘 **Read the guides** | Short wildfire and earthquake preparedness pages plus emergency contacts |
+
+## How it works
+
+The browser never talks to NASA, USGS or OpenRouteService directly. Everything goes through a small Flask API that keeps hazard data in Redis and holds the API keys.
 
 ```mermaid
-flowchart LR
-    U[Browser] --> FE[React + Leaflet frontend]
-    FE -- "/api/hazards/fires<br>/api/hazards/earthquakes" --> API[Flask API]
-    FE -- "/api/route/:profile" --> API
-    FE -. geocoding .-> OSM[Nominatim]
-    API <--> R[(Redis cache)]
-    API -- key added server-side --> ORS[OpenRouteService]
-
-    subgraph Refresh["Background refresh (every ~10 min)"]
-        S[Scheduler] --> L{Redis lock<br>hazards:refresh:lock}
-        L -- acquired --> P[Fetch in parallel]
-        P --> N[NASA FIRMS]
-        P --> G[USGS]
-        N & G --> X[Validate, filter, normalize]
-        X --> W[Write to Redis<br>TTL 30 min]
+flowchart TB
+    subgraph Client["Browser"]
+        UI["React + Leaflet<br/>map, filters, route panel"]
     end
-    W --> R
+
+    subgraph Server["Flask API (Gunicorn workers)"]
+        H["/api/hazards/*"]
+        RT["/api/route/:profile"]
+        W["Refresh worker<br/>every 10 min"]
+    end
+
+    subgraph Store["Redis"]
+        F[("hazards:fires")]
+        Q[("hazards:earthquakes")]
+        LK[("hazards:refresh:lock")]
+    end
+
+    UI -->|"load map"| H
+    UI -->|"evacuate"| RT
+    UI -.->|"place search"| NOM["Nominatim"]
+    H -->|"read"| F & Q
+    W -->|"SET NX"| LK
+    W -->|"parallel fetch"| FIRMS["NASA FIRMS<br/>2 satellites"] & USGS["USGS"]
+    W -->|"write, TTL 30 min"| F & Q
+    RT -->|"adds key"| ORS["OpenRouteService"]
 ```
 
-**How a request works.** The frontend only talks to the Flask API. Hazard endpoints serve data straight from Redis, so a page load never waits on NASA or USGS. Routing calls go through the API too, which adds the OpenRouteService key on the server. No key is ever shipped to the browser.
+**Loading the map**
+1. The page calls `/api/hazards/fires` and `/api/hazards/earthquakes`.
+2. Flask reads the JSON stored in Redis and sends it back unchanged. It doesn't decode or re-encode it, so even the 2 MB earthquake set returns in about 1.5 ms.
+3. Only if Redis is empty (a brand-new deploy) does Flask fetch that one dataset before answering.
 
-**How data stays fresh.** Each Flask worker runs a small background thread. Every 10 minutes it tries to take a Redis lock (`SET NX EX`). Only the worker that gets it refreshes, so running several workers doesn't multiply API calls. It fetches FIRMS and USGS in parallel, keeps only valid points inside the coverage area, and writes each dataset with a 30-minute TTL. The lock is released with an owner check, so a slow worker can't delete someone else's lock.
+**Keeping data fresh**
+1. Every 10 minutes, each worker tries to claim `hazards:refresh:lock` with `SET NX EX`. One wins, and the others skip this round.
+2. The winner fetches both FIRMS satellites and USGS at the same time.
+3. Points are checked and filtered: valid coordinates, inside the coverage area, nominal or high confidence for fires.
+4. Each dataset is written with a 30-minute TTL, and the lock is released with an owner check.
 
-**What happens when a source is down.** NASA and USGS refresh independently. If one fails, its last good data stays in Redis and keeps being served. The TTL is three times the refresh interval, which gives a fallback window of about 20 minutes. If the cache is empty (first start), the API fetches the missing dataset once inline before answering.
+**Planning a route**
+1. The frontend finds candidate safe zones near the fire through Nominatim.
+2. It sends route requests to `/api/route/driving-car` and `/api/route/driving-hgv`.
+3. Flask checks the request, adds the OpenRouteService key, and forwards it. The key never reaches the browser.
 
-| Key | Contents | TTL |
-|---|---|---|
-| `hazards:fires` | `{updated_at, count, data[]}` from NASA FIRMS | 30 min |
-| `hazards:earthquakes` | `{updated_at, count, data[]}` from USGS | 30 min |
-| `hazards:refresh:lock` | owner token of the worker refreshing | 2 min |
+## Design decisions
 
-## API
+| Decision | Why |
+|---|---|
+| Cache in **Redis**, not in each process | Every Gunicorn worker serves the same data, and a restart doesn't mean a cold start. |
+| **Lock** before refreshing | With several workers, only one calls NASA and USGS per cycle. This saves API quota and avoids rate limits. |
+| **TTL 3× the refresh interval** | If a source goes down, its last good data keeps being served for about 20 minutes instead of disappearing. |
+| Sources refresh **independently** | A USGS outage doesn't block fire updates, and the reverse is true too. |
+| **Serve cached bytes as-is** | Skipping a `json.loads` → `jsonify` round trip made the earthquake endpoint about 20× faster. |
+| **Proxy** routing through Flask | API keys stay server-side, and the endpoint only accepts the two routing profiles the app uses. |
+| One service for **API + frontend** | Flask serves the built React app, so there's no CORS setup and one deploy. |
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/hazards/fires` | Cached wildfire detections |
-| `GET` | `/api/hazards/earthquakes` | Cached earthquakes |
-| `POST` | `/api/route/driving-car` · `/api/route/driving-hgv` | OpenRouteService directions proxy. Body: `{"coordinates": [[lng, lat], [lng, lat]]}` |
-| `GET` | `/api/health` | Cache status and when each dataset was last updated |
+## Benchmarks
 
-## Tech stack
+Measured on a MacBook (Apple Silicon) with 2 Gunicorn workers, using the local in-memory cache and live upstream APIs on October 30, 2026. Endpoint numbers are from 100 warm requests each. Refresh numbers are medians of 5 runs.
 
-**Frontend:** React 19, TypeScript, Vite, Leaflet, react-leaflet, Leaflet.markercluster, React Router
-**Backend:** Python, Flask, Gunicorn, Redis (Upstash in production), Requests
-**Data:** NASA FIRMS, USGS Earthquake Hazards, OpenRouteService, Nominatim
-**Testing:** pytest
+| What | Before | After | Change |
+|---|---:|---:|---|
+| `GET /api/hazards/earthquakes` (2 MB, ~7,700 events), p50 | 31.2 ms | **1.5 ms** | Serve cached JSON without re-encoding |
+| `GET /api/hazards/fires` (171 KB, ~1,000 detections), p50 | 4.0 ms | **0.7 ms** | Same |
+| NASA FIRMS fetch, both satellites | 1.13 s | **0.58 s** | Fetch satellites in parallel |
+| Full refresh, FIRMS + USGS | 1.27 s | **0.58 s** | Everything in parallel, so the total time is just the slowest request |
+
+Run it yourself with the server running:
+
+```bash
+cd backend && python scripts/benchmark.py --requests 100 --runs 5
+```
+
+> With a hosted Redis like Upstash, add the network round trip to Redis (usually a few milliseconds in the same region) to the endpoint numbers.
 
 ## Run it locally
 
-You need Python 3.11+ and Node 20+. Redis is optional locally: without `REDIS_URL` the API uses an in-memory cache.
+**You need:** Python 3.11+, Node 20+, a free [NASA FIRMS map key](https://firms.modaps.eosdis.nasa.gov/api/map_key/) and a free [OpenRouteService key](https://openrouteservice.org/dev/#/signup). Redis is optional locally.
 
 ```bash
-# 1. Backend
+git clone https://github.com/Jap-Sidhu/safe-route.git
+cd safe-route
+
+# API
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements-dev.txt
-cp .env.example .env        # add your API keys
-python app.py               # http://127.0.0.1:5050
+cp .env.example .env            # paste your keys
+python app.py                   # http://127.0.0.1:5050
 
-# 2. Frontend (new terminal)
+# Frontend, in a second terminal
 cd frontend
-npm ci
-npm run dev                 # http://localhost:5173, /api is proxied to Flask
+npm ci && npm run dev           # http://localhost:5173, /api proxied to Flask
 ```
 
-Free API keys: [NASA FIRMS map key](https://firms.modaps.eosdis.nasa.gov/api/map_key/) · [OpenRouteService](https://openrouteservice.org/dev/#/signup) · [Upstash Redis](https://upstash.com/)
+Want real Redis locally? `docker run -d -p 6379:6379 redis:7`, then set `REDIS_URL=redis://127.0.0.1:6379/0`.
 
-### Tests
+### Configuration
+
+| Variable | Required | Default | Purpose |
+|---|:---:|---|---|
+| `FIRMS_MAP_KEY` | ✅ | | NASA FIRMS access |
+| `ORS_API_KEY` | ✅ | | OpenRouteService routing |
+| `REDIS_URL` | prod | in-memory | `redis://` or `rediss://` (Upstash) |
+| `REFRESH_INTERVAL_SECONDS` | | `600` | How often the worker refreshes |
+| `CACHE_TTL_SECONDS` | | `1800` | How long cached data lives |
+| `FIRMS_DAYS` | | `2` | Days of fire detections (1–10) |
+| `FIRMS_MIN_FRP` | | `0` | Minimum fire radiative power in MW |
+| `USGS_DAYS` | | `30` | Days of earthquakes |
+
+## API reference
+
+| Endpoint | Returns |
+|---|---|
+| `GET /api/hazards/fires` | `{updated_at, count, data: [{lat, lng, properties}]}` |
+| `GET /api/hazards/earthquakes` | Same shape, with magnitude, depth, place, time |
+| `POST /api/route/{driving-car\|driving-hgv}` | OpenRouteService GeoJSON. Body: `{"coordinates": [[lng, lat], [lng, lat]]}` |
+| `GET /api/health` | Cache backend, whether it's reachable, last update and count per dataset |
+
+`503` means no usable data is cached yet. `400` means the request was invalid.
+
+## Project layout
+
+```
+safe-route/
+├── backend/
+│   ├── app.py            Flask app: hazard endpoints, routing proxy, serves the built frontend
+│   ├── refresher.py      Background worker: lock → parallel fetch → write with TTL
+│   ├── sources.py        NASA FIRMS + USGS clients and data normalization
+│   ├── cache.py          Redis client, with an in-memory fallback for local dev
+│   ├── config.py         Settings from environment variables
+│   ├── scripts/benchmark.py
+│   └── tests/test_api.py
+├── frontend/
+│   ├── public/safezone.js   Safe-zone search and route ranking
+│   └── src/
+│       ├── api.ts           API client
+│       └── Components/      Map, Search, Filter, Contacts, Homepage, SafetyGuide…
+├── docs/
+├── render.yaml           Render deployment (single web service)
+└── LICENSE
+```
+
+## Testing
 
 ```bash
 cd backend && python -m pytest
 ```
 
-The tests cover cold-start fills, serving from cache, keeping old data when a source fails, the refresh lock, input validation, and parsing of FIRMS and USGS data.
+10 tests cover the cold-start fill, serving from cache without refetching, keeping old data when a source fails, the refresh lock (busy and released), input validation on the routing proxy, and parsing FIRMS CSV and USGS GeoJSON.
 
 ## Deploy
 
-`render.yaml` sets up a single Render web service. Flask serves both the API and the built React app, so there's no CORS to configure. Set `FIRMS_MAP_KEY`, `ORS_API_KEY` and `REDIS_URL` in the Render dashboard.
+`render.yaml` defines one Render web service that installs both halves, builds the React app, and starts Gunicorn. Add `FIRMS_MAP_KEY`, `ORS_API_KEY` and `REDIS_URL` (a free [Upstash](https://upstash.com/) database works) in the Render dashboard.
 
-## License
+## Know the limits
 
-[MIT](LICENSE)
+- **A heat detection is not a fire perimeter.** FIRMS detects heat from orbit. That includes things like gas flares and controlled burns, and the satellites pass over a few times a day, so detections can be hours old.
+- **Routes are suggestions.** They come from road data, not live closures or the fire's actual spread.
+- **This is not an alert system.** Always follow official evacuation orders, [Alert Ready](https://www.alertready.ca/) and local authorities. In an emergency, call 911.
+
+## Credits
+
+SafeRoute grew out of the **Disaster Alert System**, a group project for CMPT 276 (Introduction to Software Engineering) at Simon Fraser University in Summer 2025. Our team won the course's **Teaching Team Award** for innovation, teamwork and user-centred design.
+
+In this version I rebuilt the backend: the Flask API, Redis caching and refresh pipeline, the routing proxy that keeps keys off the client, parallel data fetching, the benchmarks and the tests. I also fixed several bugs that kept the original from building or routing.
+
+**Data:** [NASA FIRMS](https://firms.modaps.eosdis.nasa.gov/) · [USGS Earthquake Hazards Program](https://earthquake.usgs.gov/) · [OpenRouteService](https://openrouteservice.org/) · [OpenStreetMap / Nominatim](https://nominatim.org/)
+
+**Built by** [Japdeep Sidhu](https://github.com/Jap-Sidhu) · [LinkedIn](https://www.linkedin.com/in/japdeep-sidhu-07708023a/) · [jap-s.dev](https://www.jap-s.dev)
+
+Released under the [MIT License](LICENSE).
