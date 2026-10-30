@@ -1,151 +1,52 @@
-
-/* Overlay */
-.overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: 999;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    backdrop-filter: blur(4px);
-}
-
-.overlay.active {
-    opacity: 1;
-    visibility: visible;
-}
-
-/* Header */
-.headerMap {
-    padding: 2rem 3rem;
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(100, 255, 218, 0.2);
-    position: relative;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 100;
+/* Full-height map workspace under the top bar */
+.map-page {
     display: flex;
-    align-items: center;
-    justify-content: flex-start;
+    height: calc(100vh - var(--topbar-h));
+    height: calc(100dvh - var(--topbar-h));
+    min-height: 480px;
 }
 
-.page-titleMap {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #64ffda;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    padding-top: 2rem;
-}
-
-/* Main Content */
-.main-contentMap {
-    flex: 1;
-    display: flex;
-    flex-direction: row;
-    position: absolute;
-    padding: 0;
-    height: calc(100vh - 113px); 
-    left: 0;
-    text-align: left;
-    width: 100%;
-}
-
-/* Sidebar */
 .sidebarMap {
-    height: 100%;
-    width: 350px;
-    background: rgba(15, 15, 35, 0.95);
-    backdrop-filter: blur(15px);
-    border-right: 1px solid rgba(100, 255, 218, 0.2);
-    padding: 2rem;
+    width: 320px;
+    flex: none;
+    background: var(--bg-2);
+    border-right: 1px solid var(--line);
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 14px;
     overflow-y: auto;
 }
 
+.sidebar-intro { display: grid; gap: 6px; padding: 2px 2px 6px; }
+.sidebar-intro .eyebrow { color: var(--accent); }
+.sidebar-intro h1 { font-size: 1.375rem; font-weight: 700; letter-spacing: -0.01em; }
+
 .sidebar-section {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(100, 255, 218, 0.2);
-    border-radius: 1rem;
-    padding: 1.5rem;
-    backdrop-filter: blur(10px);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
 }
 
 .sidebar-title {
-    font-size: 1.2rem;
-    color: #64ffda;
-    margin-bottom: 1rem;
+    font: 600 0.75rem/1 var(--font-mono);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    color: var(--muted);
+    margin: 0 0 12px;
 }
 
-@media (max-width: 768px) {
-    .headerMap {
-        padding: 1rem 2rem;
-    }
+.howto { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 0.875rem; color: var(--muted); }
+.howto li { display: flex; gap: 10px; align-items: flex-start; }
+.howto svg { color: var(--accent); flex: none; margin-top: 2px; }
+.howto b { color: var(--text); font-weight: 600; }
 
-    .menu-toggle {
-        margin-right: 0.5rem;
-    }
+.contacts-btn { width: 100%; margin-top: auto; }
 
-    .page-titleMap {
-        font-size: 1.2rem;
-    }
-
-    .main-contentMap {
-        flex-direction: column;
-    }
-
-    .sidebarMap {
-        width: 100%;
-        height: auto;
-        max-height: 40vh;
-        order: 2;
-    }
-
-    .map-container {
-        order: 1;
-        margin: 0.5rem;
-    }
-
-    /* Navigation sidebar mobile adjustments */
-    .nav-sidebar {
-        width: 280px;
-        left: -280px;
-    }
-
-    .container.shifted {
-        margin-left: 0;
-        filter: none; 
-        opacity: 1;   
-    }
-
-    .nav-sidebar.active {
-        left: 0;
-    }
-}
-
-@media (max-width: 480px) {
-    .headerMap {
-        padding: 1rem;
-    }
-
-    .sidebarMap {
-        padding: 1rem;
-    }
-
-    .sidebar-section {
-        padding: 1rem;
-    }
+@media (max-width: 760px) {
+    .map-page { flex-direction: column; height: auto; min-height: 0; }
+    .map-page .map-container { order: 1; height: 62vh; flex: none; }
+    .sidebarMap { order: 2; width: 100%; border-right: 0; border-top: 1px solid var(--line); overflow: visible; }
+    .contacts-btn { margin-top: 4px; }
 }

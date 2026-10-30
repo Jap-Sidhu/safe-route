@@ -15,7 +15,7 @@ export interface EarthquakeData {
     };
 }
 
-// Fetch earthquakes from the SafeRoute API (USGS data, cached in Redis)
+// Fetch earthquakes from the SafeRoute API (USGS data, cached on the server)
 export const fetchEarthquakeData = async (): Promise<EarthquakeData[]> => {
     try {
         const payload = await getHazards<EarthquakeData & { properties: { time: number } }>('earthquakes');

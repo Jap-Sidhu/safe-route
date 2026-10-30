@@ -1,8 +1,9 @@
 """Background refresh pipeline.
 
-Every REFRESH_INTERVAL_SECONDS: take a Redis lock so only one worker refreshes, fetch
-FIRMS and USGS in parallel, and write each dataset to the cache with a TTL. A source
-that fails leaves its previous cached data in place, so the map keeps working.
+Every REFRESH_INTERVAL_SECONDS: take the refresh lock so a background refresh and a
+cold-start request never fetch at the same time, fetch FIRMS and USGS in parallel, and
+store each dataset with a TTL. A source that fails leaves its previous data in place,
+so the map keeps working.
 """
 
 import logging
@@ -12,7 +13,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, Optional
 
-from cache import set_json
+from cache import store_hazards
 from config import KEY_FIRES, KEY_LOCK, KEY_QUAKES, Settings
 import sources
 
@@ -29,7 +30,7 @@ def _jobs(settings: Settings) -> dict[str, Callable[[], list]]:
 def refresh_once(cache, settings: Settings, only: Optional[str] = None) -> dict[str, str]:
     """Run one refresh (of every dataset, or just `only`).
 
-    Returns a status per cache key, or {"lock": "busy"} if another worker holds the lock.
+    Returns a status per cache key, or {"lock": "busy"} if a refresh is already running.
     """
     token = uuid.uuid4().hex
     if not cache.set(KEY_LOCK, token, ex=settings.lock_ttl, nx=True):
@@ -43,9 +44,8 @@ def refresh_once(cache, settings: Settings, only: Optional[str] = None) -> dict[
             for key, future in futures.items():
                 try:
                     data = future.result()
-                    # Stored gzip-compressed: ~8x smaller in Redis, and sent to browsers as-is.
-                    set_json(cache, key, {"updated_at": int(time.time() * 1000), "count": len(data), "data": data},
-                             settings.cache_ttl, compress=True)
+                    # Compressed once here, then sent to every browser as-is.
+                    store_hazards(cache, key, data, settings.cache_ttl)
                     status[key] = f"ok ({len(data)})"
                 except Exception as exc:  # noqa: BLE001
                     log.warning("refresh of %s failed, keeping previous cache: %s", key, exc)

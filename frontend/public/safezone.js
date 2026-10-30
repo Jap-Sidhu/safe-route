@@ -569,9 +569,9 @@ function addRouteControlPanel(map, routes, routeLayerGroup) {
     left: 20px;
     transform: translateY(-50%);
     z-index: 1000;
-    background: rgba(15, 15, 35, 0.95);
+    background: rgba(19, 26, 35, 0.95);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(100, 255, 218, 0.3);
+    border: 1px solid rgba(245, 197, 24, 0.3);
     border-radius: 12px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     padding: 20px;
@@ -581,7 +581,7 @@ function addRouteControlPanel(map, routes, routeLayerGroup) {
     color: white;
   `;
   
-  let panelHTML = '<div style="font-weight:500;margin-bottom:16px;font-size:18px;color:#64ffda;">🛣️ Evacuation Routes</div>';
+  let panelHTML = '<div style="font-weight:500;margin-bottom:16px;font-size:18px;color:#f5c518;">🛣️ Evacuation Routes</div>';
   
   routes.forEach((route, index) => {
     const routeColors = ['#ea4335', '#34a853', '#4285f4'];
@@ -601,17 +601,17 @@ function addRouteControlPanel(map, routes, routeLayerGroup) {
   });
   
   panelHTML += `
-    <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(100, 255, 218, 0.2);font-size:14px;color:rgba(255, 255, 255, 0.8);">
+    <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(245, 197, 24, 0.2);font-size:14px;color:rgba(255, 255, 255, 0.8);">
       Click markers on map for detailed route info
     </div>
     <div style="display:flex;gap:8px;margin-top:12px;">
       <button onclick="window.toggleRoutePanel()" 
-              style="background:rgba(255, 255, 255, 0.1);color:#64ffda;border:1px solid rgba(100, 255, 218, 0.3);padding:10px 14px;border-radius:8px;cursor:pointer;font-size:14px;flex:1;transition:all 0.3s ease;">
+              style="background:rgba(255, 255, 255, 0.1);color:#f5c518;border:1px solid rgba(245, 197, 24, 0.3);padding:10px 14px;border-radius:8px;cursor:pointer;font-size:14px;flex:1;transition:all 0.3s ease;">
         Hide Panel ✕
       </button>
       <button onclick="window.clearEvacuationRoutes()" 
       <button onclick="window.clearEvacuationRoutes()" 
-              style="background:rgba(255, 107, 107, 0.2);color:#ff6b6b;border:1px solid rgba(255, 107, 107, 0.4);padding:10px 14px;border-radius:8px;cursor:pointer;font-size:14px;flex:1;transition:all 0.3s ease;">
+              style="background:rgba(255, 77, 94, 0.2);color:#ff4d5e;border:1px solid rgba(255, 77, 94, 0.4);padding:10px 14px;border-radius:8px;cursor:pointer;font-size:14px;flex:1;transition:all 0.3s ease;">
         Clear Routes 🗑️
       </button>
     </div>
@@ -688,9 +688,9 @@ function createMinimizedToggle() {
     left: 20px;
     transform: translateY(-50%);
     z-index: 1000;
-    background: rgba(15, 15, 35, 0.95);
+    background: rgba(19, 26, 35, 0.95);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(100, 255, 218, 0.3);
+    border: 1px solid rgba(245, 197, 24, 0.3);
     border-radius: 50%;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
     padding: 12px;
@@ -703,13 +703,13 @@ function createMinimizedToggle() {
     justify-content: center;
   `;
   
-  toggleDiv.innerHTML = '<span style="color:#64ffda;font-size:18px;">🛣️</span>';
+  toggleDiv.innerHTML = '<span style="color:#f5c518;font-size:18px;">🛣️</span>';
   toggleDiv.title = 'Show Evacuation Routes Panel';
   
   // Add hover effect
   toggleDiv.addEventListener('mouseenter', () => {
     toggleDiv.style.transform = 'translateY(-50%) scale(1.1)';
-    toggleDiv.style.boxShadow = '0 12px 40px rgba(100, 255, 218, 0.4)';
+    toggleDiv.style.boxShadow = '0 12px 40px rgba(245, 197, 24, 0.4)';
   });
   
   toggleDiv.addEventListener('mouseleave', () => {

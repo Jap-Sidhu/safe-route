@@ -1,90 +1,55 @@
-import React from 'react';
-import { AlertTriangle } from 'lucide-react';
-import './SafetyGuide.css';
-import Hamburger from '../Navigation/Hamburger';
+import { AlertTriangle, Clock } from 'lucide-react';
+import GuideLayout, { GuideSection } from './GuideLayout';
 import { earthquakeData } from './EarthquakeData';
-import type { EarthquakeContentProps, ActionItem, SituationItem } from './EarthquakeData';
 
-// earthquake Component
-const EarthquakeContent: React.FC<EarthquakeContentProps> = ({ content }) => (
-  <div className="earthquake-content">
-    {/* Emergency Safety Guide Heading */}
-    <div className="emergency-safety-heading">
-      <h1 className="safety-guide-title">Emergency Safety Guide</h1>
-      <div className="title-divider"></div>
-      <h2 className="disaster-type">Earthquakes</h2>
-    </div>
-    
-    {/* warning Signs */}
-    <div className="glass-card">
-      <h3 className="card-title">Warning Signs</h3>
-      <div className="signs-grid">
-        {content.signs.map((sign: string, index: number) => (
-          <div key={index} className="sign-item">
-            <AlertTriangle className="w-4 h-4 text-danger" />
-            <span>{sign}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+function Earthquake() {
+    const content = earthquakeData;
+    return (
+        <GuideLayout
+            kind="quake"
+            title="Earthquakes"
+            lede="BC sits on an active fault zone. Learn the warning signs, the three moves that protect you, and what to do wherever you are when it hits."
+        >
+            <GuideSection label="01 · Warning signs" title="What you might notice">
+                <ul className="sign-row">
+                    {content.signs.map(sign => (
+                        <li key={sign}><AlertTriangle size={16} /><span>{sign}</span></li>
+                    ))}
+                </ul>
+            </GuideSection>
 
-    {/* key actions */}
-    <div className="glass-card">
-      <h3 className="card-title">Key Actions: DROP, COVER, HOLD ON</h3>
-      <div className="actions-grid">
-        {content.actions.map((action: ActionItem, index: number) => (
-          <div key={index} className="action-card">
-            <div className="action-icon"><action.icon /></div>
-            <h4 className="action-title">{action.title}</h4>
-            <p className="action-description">{action.description}</p>
-          </div>
-        ))}
-      </div>
-      <div className="important-note">
-        <strong>Important:</strong> Count to 60 after shaking stops before moving. Stay alert for hazards and call 911 if there are injuries.
-      </div>
-    </div>
+            <GuideSection label="02 · When shaking starts" title="Drop, cover, hold on">
+                <div className="dch">
+                    {content.actions.map((action, i) => (
+                        <div key={action.title} className="dch-card">
+                            <span className="dch-n mono">{i + 1}</span>
+                            <action.icon className="dch-icon" />
+                            <h3>{action.title}</h3>
+                            <p>{action.description}</p>
+                        </div>
+                    ))}
+                </div>
+                <div className="info-box">
+                    <Clock size={20} />
+                    <p><strong>After the shaking stops,</strong> count to 60 before you move. Watch for falling debris,
+                        gas leaks and aftershocks, and call 911 if anyone is hurt.</p>
+                </div>
+            </GuideSection>
 
-    {/* specific situations */}
-    <div className="glass-card">
-      <h3 className="card-title">Specific Situations</h3>
-      <div className="situations-grid">
-        {content.situations.map((situation: SituationItem, index: number) => (
-          <div key={index} className="situation-card">
-            <h4 className="situation-title">{situation.title}</h4>
-            <ul className="situation-steps">
-              {situation.steps.map((step: string, stepIndex: number) => (
-                <li key={stepIndex}>{step}</li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-);
-
-interface EarthquakePageProps {
-    isSidebarActive: boolean;
-    toggleSidebar: () => void;
+            <GuideSection label="03 · Where you are" title="Specific situations">
+                <div className="situations">
+                    {content.situations.map(situation => (
+                        <div key={situation.title} className="situation">
+                            <h3>{situation.title}</h3>
+                            <ul>
+                                {situation.steps.map(step => <li key={step}>{step}</li>)}
+                            </ul>
+                        </div>
+                    ))}
+                </div>
+            </GuideSection>
+        </GuideLayout>
+    );
 }
 
-// Main Earthquake Component 
-const Earthquake: React.FC<EarthquakePageProps> = ({ isSidebarActive, toggleSidebar }) => {
-    return (
-        <div className="earthquake-page-container"> 
-            <header className="header"> 
-                <Hamburger
-                    isSidebarActive={isSidebarActive}
-                    onToggleSidebar={toggleSidebar}
-                />
-            </header>
-
-            {/* Render the EarthquakeContent with the data */}
-            <EarthquakeContent content={earthquakeData} />
-        </div>
-    );
-};
-
 export default Earthquake;
-export { EarthquakeContent };

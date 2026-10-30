@@ -22,7 +22,7 @@ QUAKE = {"lat": 49.0, "lng": -123.0, "properties": {"magnitude": 3.1, "depth": 1
 @pytest.fixture
 def settings():
     # Explicit values so tests never pick up real keys from backend/.env
-    return Settings(firms_map_key="test", ors_api_key="", redis_url="", run_worker=False)
+    return Settings(firms_map_key="test", ors_api_key="", run_worker=False)
 
 
 @pytest.fixture
@@ -80,6 +80,42 @@ def test_hazards_decompressed_for_clients_without_gzip(client):
     res = client.get("/api/hazards/fires", headers={"Accept-Encoding": "identity"})
     assert "Content-Encoding" not in res.headers
     assert res.json["data"] == [FIRE]
+
+
+def test_etag_returns_304_when_unchanged(client):
+    first = client.get("/api/hazards/fires")
+    again = client.get("/api/hazards/fires", headers={"If-None-Match": first.headers["ETag"]})
+    assert again.status_code == 304
+    assert again.data == b""
+
+
+def test_etag_changes_after_refresh(client, cache, settings, monkeypatch):
+    first = client.get("/api/hazards/fires").headers["ETag"]
+    monkeypatch.setattr("time.time", lambda: 9_999_999_999)
+    refresh_once(cache, settings)
+    assert client.get("/api/hazards/fires").headers["ETag"] != first
+
+
+def test_cold_request_waits_for_running_refresh(cache, settings, monkeypatch):
+    import threading
+    from cache import store_hazards
+
+    cache.set(KEY_LOCK, "worker", ex=60)            # the background worker is mid-refresh
+
+    def finish():
+        store_hazards(cache, KEY_FIRES, [FIRE], 60)
+        cache.delete_if_equals(KEY_LOCK, "worker")
+    threading.Timer(0.3, finish).start()
+
+    res = create_app(cache=cache, settings=settings).test_client().get("/api/hazards/fires")
+    assert res.status_code == 200
+    assert res.json["data"] == [FIRE]
+
+
+def test_health_reports_counts(client):
+    client.get("/api/hazards/earthquakes")
+    datasets = client.get("/api/health").json["datasets"]
+    assert datasets[KEY_QUAKES]["count"] == 1
 
 
 def test_lock_prevents_duplicate_refresh(cache, settings):

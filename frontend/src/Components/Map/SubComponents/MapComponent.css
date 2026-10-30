@@ -2,175 +2,124 @@
 /* Map Container */
 .map-container {
     flex: 1;
-    height: 97%;
+    min-width: 0;
     position: relative;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(100, 255, 218, 0.2);
-    margin: 1rem;
-    border-radius: 1rem;
+    background: var(--bg-2);
     overflow: hidden;
 }
 
 .map-leaflet-instance {
-  height: 100%; 
-  width: 100%;  
-  z-index: 0; 
-  border-radius: 1rem; 
-  overflow: hidden;
+    height: 100%;
+    width: 100%;
+    z-index: 0;
 }
 
-/*////////////////////////////////////////////////////////////////////////////////////////////////////*/
+/* Floating panels share one look */
+.coords-display,
+.map-control-btn,
+.map-type-controls,
+.status-itemMap {
+    background: rgba(19, 26, 35, 0.92);
+    border: 1px solid var(--line-strong);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 6px 20px -8px rgba(0, 0, 0, 0.6);
+}
 
 .coords-display {
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: 14px;
+    left: 14px;
     z-index: 1000;
-    background: rgba(15, 15, 35, 0.9);
     padding: 8px 12px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-    font-size: 12px;
-    font-family: 'Roboto', Arial, sans-serif;
-    border: 1px solid rgba(100, 255, 218, 0.3);
-    color: #64ffda;
-    backdrop-filter: blur(10px);
+    border-radius: var(--radius-sm);
+    font: 500 12px/1.5 var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
 }
+.coords-display p { margin: 0; }
 
-.coords-display p {
-    margin: 0;
-}
-
-/*////////////////////////////////////////////////////////////////////////////////////////////////////*/
-
-/* Map Controls */
+/* Zoom */
 .map-controls {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: 14px;
+    right: 14px;
+    z-index: 1000;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 6px;
 }
-
 .map-control-btn {
     width: 40px;
     height: 40px;
-    background: rgba(15, 15, 35, 0.9);
-    border: 1px solid rgba(100, 255, 218, 0.3); 
-    border-radius: 0.5rem;
-    color: #64ffda;
+    border-radius: var(--radius-sm);
+    color: var(--text);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-    font-size: 1.2rem;
-    font-weight: bold;
+    font: 600 1.25rem/1 var(--font-mono);
+    transition: border-color 0.15s ease, color 0.15s ease;
 }
+.map-control-btn:hover { border-color: var(--accent); color: var(--accent); }
+.map-control-btn:disabled { opacity: 0.5; cursor: default; }
 
-.map-control-btn:hover {
-    background: rgba(60, 60, 60, 0.9);
-    box-shadow: 0 0 15px rgba(100, 255, 218, 0.3);
-}
-
-/*////////////////////////////////////////////////////////////////////////////////////////////////////*/
-
-/* Status Indicators */
+/* Legend */
 .status-indicators {
     position: absolute;
-    bottom: 1rem;
-    left: 1rem;
+    bottom: 14px;
+    left: 14px;
+    z-index: 1000;
     display: flex;
-    gap: 1rem;
+    flex-wrap: wrap;
+    gap: 8px;
 }
-
 .status-itemMap {
-    background: rgba(15, 15, 35, 0.9);
-    border: 1px solid rgba(100, 255, 218, 0.3);
-    border-radius: 0.5rem;
-    padding: 0.5rem 0.4rem;
-    backdrop-filter: blur(10px);
+    border-radius: 999px;
+    padding: 7px 12px;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
 }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.status-dot.fire { background: var(--fire); box-shadow: 0 0 0 3px rgba(var(--fire-rgb), 0.25); }
+.status-dot.quake { background: var(--quake); box-shadow: 0 0 0 3px rgba(var(--quake-rgb), 0.25); }
+.status-text { font-size: 0.8125rem; color: var(--muted); }
+.status-text b { color: var(--text); font: 600 0.8125rem var(--font-mono); }
 
-.status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #64ffda;
-    animation: glowMap 2s ease-in-out infinite;
-}
-
-.status-dot.danger {
-    background: #ff6b6b;
-}
-
-.status-dot.warning {
-    background: #ffeb3b;
-}
-
-@keyframes glowMap {
-    0%, 100% { box-shadow: 0 0 5px currentColor; }
-    50% { box-shadow: 0 0 20px currentColor; }
-}
-
-.status-text {
-    font-size: 0.85rem;
-    color: #fff;
-}
-
-/*////////////////////////////////////////////////////////////////////////////////////////////////////*/
-
+/* Map / satellite switch */
 .map-type-controls {
     position: absolute;
-    bottom: 70px;
-    right: 20px;
+    bottom: 14px;
+    right: 14px;
     z-index: 1000;
-    background: rgba(15, 15, 35, 0.9);
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(100, 255, 218, 0.3);
-    overflow: hidden;
-    backdrop-filter: blur(10px);
+    display: flex;
+    padding: 3px;
+    gap: 3px;
+    border-radius: var(--radius-sm);
 }
-
 .map-type-btn {
-    display: block;
-    width: 100%;
-    padding: 10px 15px;
-    border: none;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 4px;
     background: transparent;
     cursor: pointer;
-    font-size: 13px;
-    font-family: 'Roboto', Arial, sans-serif;
-    transition: background-color 0.2s;
-    border-bottom: 1px solid rgba(100, 255, 218, 0.2);
-    color: #fff;
+    font: 600 0.8125rem/1 var(--font-ui);
+    color: var(--muted);
 }
+.map-type-btn:hover { color: var(--text); }
+.map-type-btn.active { background: var(--accent); color: var(--accent-ink); }
 
-.map-type-btn:hover {
-    background-color: rgba(60, 60, 60, 0.9);
+/* Leaflet attribution in the dark theme */
+.map-container .leaflet-control-attribution {
+    background: rgba(10, 14, 19, 0.75);
+    color: var(--muted);
 }
+.map-container .leaflet-control-attribution a { color: var(--text); }
 
-.map-type-btn.active {
-    background-color: #264a4d; 
-    color: #20c997; 
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+@media (max-width: 760px) {
+    .map-type-controls { bottom: auto; top: 14px; right: 64px; }
+    .status-indicators { bottom: 34px; left: 10px; }
 }
-
-.map-type-btn.active:last-child {
-    border-bottom: none;
-}
-
-.map-type-btn:not(:last-child) {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08); 
-}
-
-/*////////////////////////////////////////////////////////////////////////////////////////////////////*/
 
 /* Emergency Modal Styles */
 .modal-overlay {
@@ -196,9 +145,9 @@
 }
 
 .modal {
-    background: linear-gradient(135deg, #0f0f23, #1a1a2e, #16213e);
+    background: linear-gradient(135deg, #0a0e13, #1a1a2e, #16213e);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(100, 255, 218, 0.2);
+    border: 1px solid rgba(245, 197, 24, 0.2);
     border-radius: 16px;
     padding: 0;
     max-width: 650px;
@@ -207,8 +156,8 @@
     overflow: hidden;
     box-shadow: 
         0 25px 70px rgba(0, 0, 0, 0.7),
-        0 0 0 1px rgba(100, 255, 218, 0.1) inset,
-        0 0 40px rgba(100, 255, 218, 0.15);
+        0 0 0 1px rgba(245, 197, 24, 0.1) inset,
+        0 0 40px rgba(245, 197, 24, 0.15);
     transform: scale(0.9) translateY(30px);
     transition: all 0.3s ease;
 }
@@ -222,7 +171,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 2rem;
-    border-bottom: 1px solid rgba(100, 255, 218, 0.2);
+    border-bottom: 1px solid rgba(245, 197, 24, 0.2);
     background: rgba(255, 255, 255, 0.05);
 }
 
@@ -234,38 +183,38 @@
 
 .modal-icon {
     font-size: 1.5rem;
-    color: #64ffda;
-    filter: drop-shadow(0 0 8px rgba(100, 255, 218, 0.5));
+    color: #f5c518;
+    filter: drop-shadow(0 0 8px rgba(245, 197, 24, 0.5));
 }
 
 .modal-title {
-    font-family: 'Segoe UI', sans-serif;
+    font-family: var(--font-ui);
     font-size: 1.5rem;
     font-weight: 600;
-    color: #64ffda;
+    color: #f5c518;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin: 0;
-    text-shadow: 0 0 10px rgba(100, 255, 218, 0.3);
+    text-shadow: 0 0 10px rgba(245, 197, 24, 0.3);
 }
 
 .modal-close {
     background: transparent;
-    border: 1px solid rgba(100, 255, 218, 0.2);
-    color: #64ffda;
+    border: 1px solid rgba(245, 197, 24, 0.2);
+    color: #f5c518;
     font-size: 1.5rem;
     cursor: pointer;
     padding: 0.5rem 0.75rem;
     border-radius: 8px;
     transition: all 0.3s ease;
     line-height: 1;
-    font-family: 'Segoe UI', sans-serif;
+    font-family: var(--font-ui);
 }
 
 .modal-close:hover {
     background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(100, 255, 218, 0.5);
-    box-shadow: 0 0 15px rgba(100, 255, 218, 0.4);
+    border-color: rgba(245, 197, 24, 0.5);
+    box-shadow: 0 0 15px rgba(245, 197, 24, 0.4);
     transform: scale(1.05);
 }
 
@@ -275,12 +224,12 @@
     flex-direction: column;
     max-height: calc(85vh - 100px);
     overflow-y: auto;
-    font-family: 'Segoe UI', sans-serif;
+    font-family: var(--font-ui);
 }
 
 .route-status-section {
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 107, 107, 0.3);
+    border: 1px solid rgba(255, 77, 94, 0.3);
     border-radius: 12px;
     padding: 2rem;
     margin: 0.75rem;
@@ -288,8 +237,8 @@
 }
 
 .route-status-section:hover {
-    border-color: rgba(255, 107, 107, 0.6);
-    box-shadow: 0 0 20px rgba(255, 107, 107, 0.4);
+    border-color: rgba(255, 77, 94, 0.6);
+    box-shadow: 0 0 20px rgba(255, 77, 94, 0.4);
 }
 
 .status-header {
@@ -300,13 +249,13 @@
 
 .warning-icon {
     font-size: 1.8rem;
-    color: #ff6b6b;
+    color: #ff4d5e;
     margin-top: 0.1rem;
-    filter: drop-shadow(0 0 8px rgba(255, 107, 107, 0.5));
+    filter: drop-shadow(0 0 8px rgba(255, 77, 94, 0.5));
 }
 
 .status-info h3 {
-    font-family: 'Segoe UI', sans-serif;
+    font-family: var(--font-ui);
     color: #fff;
     font-size: 1.5rem;
     margin: 0 0 0.5rem 0;
@@ -315,7 +264,7 @@
 }
 
 .status-info p {
-    font-family: 'Segoe UI', sans-serif;
+    font-family: var(--font-ui);
     color: rgba(255, 255, 255, 0.85);
     font-size: 1rem;
     margin: 0;
@@ -324,7 +273,7 @@
 
 .guidance-section {
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(100, 255, 218, 0.2);
+    border: 1px solid rgba(245, 197, 24, 0.2);
     border-radius: 12px;
     padding: 2rem;
     margin: 0.75rem;
@@ -332,8 +281,8 @@
 }
 
 .guidance-section:hover {
-    border-color: rgba(100, 255, 218, 0.5);
-    box-shadow: 0 0 20px rgba(100, 255, 218, 0.3);
+    border-color: rgba(245, 197, 24, 0.5);
+    box-shadow: 0 0 20px rgba(245, 197, 24, 0.3);
 }
 
 .guidance-list {
@@ -343,7 +292,7 @@
 }
 
 .guidance-list li {
-    font-family: 'Segoe UI', sans-serif;
+    font-family: var(--font-ui);
     color: rgba(255, 255, 255, 0.92);
     font-size: 1rem;
     line-height: 1.6;
@@ -358,17 +307,17 @@
 
 .guidance-list li::before {
     content: "•";
-    color: #64ffda;
+    color: #f5c518;
     position: absolute;
     left: 0;
     font-weight: bold;
     font-size: 1.2rem;
-    filter: drop-shadow(0 0 4px rgba(100, 255, 218, 0.3));
+    filter: drop-shadow(0 0 4px rgba(245, 197, 24, 0.3));
 }
 
 .emergency-actions-section {
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(100, 255, 218, 0.2);
+    border: 1px solid rgba(245, 197, 24, 0.2);
     border-radius: 12px;
     padding: 2rem;
     margin: 0.75rem;
@@ -376,8 +325,8 @@
 }
 
 .emergency-actions-section:hover {
-    border-color: rgba(100, 255, 218, 0.5);
-    box-shadow: 0 0 20px rgba(100, 255, 218, 0.3);
+    border-color: rgba(245, 197, 24, 0.5);
+    box-shadow: 0 0 20px rgba(245, 197, 24, 0.3);
 }
 
 .section-header {
@@ -389,13 +338,13 @@
 
 .section-icon {
     font-size: 1.5rem;
-    color: #64ffda;
-    filter: drop-shadow(0 0 8px rgba(100, 255, 218, 0.5));
+    color: #f5c518;
+    filter: drop-shadow(0 0 8px rgba(245, 197, 24, 0.5));
 }
 
 .section-info h3 {
-    font-family: 'Segoe UI', sans-serif;
-    color: #64ffda;
+    font-family: var(--font-ui);
+    color: #f5c518;
     font-size: 1.5rem;
     margin: 0 0 0.25rem 0;
     font-weight: 600;
@@ -403,7 +352,7 @@
 }
 
 .section-info p {
-    font-family: 'Segoe UI', sans-serif;
+    font-family: var(--font-ui);
     color: rgba(255, 255, 255, 0.8);
     font-size: 1rem;
     line-height: 1.6;
@@ -422,15 +371,15 @@
     align-items: center;
     padding: 1.25rem 1.5rem;
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(100, 255, 218, 0.2);
+    border: 1px solid rgba(245, 197, 24, 0.2);
     border-radius: 12px;
     transition: all 0.3s ease;
 }
 
 .emergency-contact:hover {
-    background: rgba(100, 255, 218, 0.08);
-    border-color: rgba(100, 255, 218, 0.4);
-    box-shadow: 0 4px 20px rgba(100, 255, 218, 0.15);
+    background: rgba(245, 197, 24, 0.08);
+    border-color: rgba(245, 197, 24, 0.4);
+    box-shadow: 0 4px 20px rgba(245, 197, 24, 0.15);
 }
 
 .contact-info {
@@ -440,7 +389,7 @@
 }
 
 .contact-name {
-    font-family: 'Segoe UI', sans-serif;
+    font-family: var(--font-ui);
     color: rgba(255, 255, 255, 0.9);
     font-size: 0.85rem;
     font-weight: 500;
@@ -449,38 +398,38 @@
 }
 
 .contact-number {
-    font-family: 'Segoe UI', sans-serif;
-    color: #64ffda;
+    font-family: var(--font-ui);
+    color: #f5c518;
     font-size: 1.1rem;
     font-weight: 600;
     letter-spacing: 0.5px;
 }
 
 .call-btn {
-    background: linear-gradient(135deg, #64ffda, #4ecdc4);
-    color: #0f0f23;
+    background: linear-gradient(135deg, #f5c518, #f5c518);
+    color: #0a0e13;
     border: none;
     padding: 0.75rem 1.5rem;
     border-radius: 8px;
-    font-family: 'Segoe UI', sans-serif;
+    font-family: var(--font-ui);
     font-size: 1.1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    box-shadow: 0 4px 15px rgba(100, 255, 218, 0.2);
+    box-shadow: 0 4px 15px rgba(245, 197, 24, 0.2);
 }
 
 .call-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(100, 255, 218, 0.4);
-    background: linear-gradient(135deg, #7fffd4, #64ffda);
+    box-shadow: 0 8px 25px rgba(245, 197, 24, 0.4);
+    background: linear-gradient(135deg, #7fffd4, #f5c518);
 }
 
 .emergency-warning {
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 107, 107, 0.3);
+    border: 1px solid rgba(255, 77, 94, 0.3);
     border-radius: 12px;
     padding: 2.5rem;
     margin: 1.5rem 0.75rem 3rem 0.75rem;
@@ -491,19 +440,19 @@
 }
 
 .emergency-warning:hover {
-    border-color: rgba(255, 107, 107, 0.6);
-    box-shadow: 0 0 20px rgba(255, 107, 107, 0.4);
+    border-color: rgba(255, 77, 94, 0.6);
+    box-shadow: 0 0 20px rgba(255, 77, 94, 0.4);
 }
 
 .fire-icon {
     font-size: 1.5rem;
-    color: #ff6b6b;
+    color: #ff4d5e;
     margin-top: 0.1rem;
-    filter: drop-shadow(0 0 8px rgba(255, 107, 107, 0.5));
+    filter: drop-shadow(0 0 8px rgba(255, 77, 94, 0.5));
 }
 
 .emergency-warning p {
-    font-family: 'Segoe UI', sans-serif;
+    font-family: var(--font-ui);
     color: #ff8a80;
     font-size: 1rem;
     margin: 0;
@@ -512,7 +461,7 @@
 }
 
 .emergency-warning strong {
-    color: #ff6b6b;
+    color: #ff4d5e;
     font-weight: 600;
 }
 
@@ -522,18 +471,18 @@
 }
 
 .modal-content::-webkit-scrollbar-track {
-    background: rgba(100, 255, 218, 0.1);
+    background: rgba(245, 197, 24, 0.1);
     border-radius: 4px;
 }
 
 .modal-content::-webkit-scrollbar-thumb {
-    background: rgba(100, 255, 218, 0.3);
+    background: rgba(245, 197, 24, 0.3);
     border-radius: 4px;
     transition: all 0.3s ease;
 }
 
 .modal-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(100, 255, 218, 0.5);
+    background: rgba(245, 197, 24, 0.5);
 }
 
 /* Responsive Design */

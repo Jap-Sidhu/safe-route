@@ -64,7 +64,7 @@ L.Icon.Default.mergeOptions({
 const createUserLocationIcon = () => {
     return L.divIcon({
         className: 'user-location-icon',
-        html: '<div style="width:20px;height:20px;background:#4285f4;border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
+        html: '<div style="width:20px;height:20px;background:#4285f4;border:3px solid white;border-radius:50%;box-shadow:0 0 0 3px rgba(10,14,19,0.55),0 2px 8px rgba(0,0,0,0.4);"></div>',
         iconSize: [20, 20],
         iconAnchor: [10, 10]
     });
@@ -74,7 +74,7 @@ const createUserLocationIcon = () => {
 const createFireMarker = (fireData: FireData) => {
     return L.circleMarker([fireData.lat, fireData.lng], {
         radius: 17,
-        fillColor: '#ea4335',
+        fillColor: '#ff6a2b',
         color: '#ffffff',
         weight: 2,
         opacity: 1,
@@ -87,7 +87,7 @@ const createFireClusterIcon = (cluster: MarkerCluster) => {
     const count = cluster.getChildCount();
     return new L.DivIcon({
         html: `<div style="
-            background:#ea4335;
+            background:#ff6a2b;
             color:white;
             border-radius:50%;
             width:40px;
@@ -95,10 +95,10 @@ const createFireClusterIcon = (cluster: MarkerCluster) => {
             display:flex;
             align-items:center;
             justify-content:center;
-            font-family:Roboto,Arial;
-            font-weight:500;
+            font-family:'JetBrains Mono',monospace;
+            font-weight:700;
             font-size:14px;
-            box-shadow:0 2px 6px rgba(0,0,0,0.3);
+            box-shadow:0 0 0 3px rgba(10,14,19,0.55),0 2px 8px rgba(0,0,0,0.4);
         ">${count}</div>`,
         className: 'custom-cluster-icon',
         iconSize: [40, 40]
@@ -109,7 +109,7 @@ const createFireClusterIcon = (cluster: MarkerCluster) => {
 const createEarthquakeMarker = (earthquakeData: EarthquakeData) => {   
     return L.circleMarker([earthquakeData.lat, earthquakeData.lng], {
         radius: 17,
-        fillColor: '#1976d2',
+        fillColor: '#3b8eea',
         color: '#ffffff',
         weight: 2,
         opacity: 1,
@@ -122,7 +122,7 @@ const createEarthquakeClusterIcon = (cluster: MarkerCluster) => {
     const count = cluster.getChildCount();
     return new L.DivIcon({
         html: `<div style="
-            background:#1976d2;
+            background:#3b8eea;
             color:white;
             border-radius:50%;
             width:40px;
@@ -130,10 +130,10 @@ const createEarthquakeClusterIcon = (cluster: MarkerCluster) => {
             display:flex;
             align-items:center;
             justify-content:center;
-            font-family:Roboto,Arial;
-            font-weight:500;
+            font-family:'JetBrains Mono',monospace;
+            font-weight:700;
             font-size:14px;
-            box-shadow:0 2px 6px rgba(0,0,0,0.3);
+            box-shadow:0 0 0 3px rgba(10,14,19,0.55),0 2px 8px rgba(0,0,0,0.4);
         ">${count}</div>`,
         className: 'custom-cluster-icon',
         iconSize: [40, 40]
@@ -142,8 +142,9 @@ const createEarthquakeClusterIcon = (cluster: MarkerCluster) => {
 
 const TILE_LAYERS = {
     standard: {
-        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        // Dark basemap so fire and quake markers stand out
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+        attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors',
         maxZoom: 19,
     },
     satellite: {
@@ -175,7 +176,7 @@ const showFirePopup = (fireData: FireData) => {
             style="margin-top:10px;
                 font-size: 16px;
                 padding:8px 12px;
-                background:#ea4335;
+                background:#ff6a2b;
                 color:white;
                 border:none;
                 border-radius:6px;cursor:pointer;
@@ -645,7 +646,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ searchLocation, activeFilte
     }, [hasShownUserPopup]);
 
     // useState for map tiles
-    const [activeLayerKey, setActiveLayerKey] = useState<keyof typeof TILE_LAYERS>('standard');
+    const [activeLayerKey, setActiveLayerKey] = useState<keyof typeof TILE_LAYERS>('satellite');
     // Use useMemo to get the details of the currently active layer
     const activeLayer = useMemo(() => TILE_LAYERS[activeLayerKey], [activeLayerKey]);
 
@@ -734,18 +735,14 @@ const MapComponent: React.FC<MapComponentProps> = ({ searchLocation, activeFilte
             </div>
 
             {/* Status Indicators */}
-            <div className="status-indicators">
+            <div className="status-indicators" aria-label="Map legend">
                 <div className="status-itemMap">
-                    <div className="status-dot"></div>
-                    <span className="status-text">System Online</span>
+                    <div className="status-dot fire"></div>
+                    <span className="status-text"><b>{filteredFireCount.toLocaleString()}</b> fire detections</span>
                 </div>
                 <div className="status-itemMap">
-                    <div className="status-dot danger"></div>
-                    <span className="status-text">{filteredEarthquakeCount + filteredFireCount} Active Alerts</span>
-                </div>
-                <div className="status-itemMap">
-                    <div className="status-dot warning"></div>
-                    <span className="status-text">GPS Enabled</span>
+                    <div className="status-dot quake"></div>
+                    <span className="status-text"><b>{filteredEarthquakeCount.toLocaleString()}</b> earthquakes</span>
                 </div>
             </div>
 

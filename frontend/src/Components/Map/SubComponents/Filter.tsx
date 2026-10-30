@@ -65,14 +65,14 @@ function Filter({ initialActiveFilter='all', onFilterChange }: FilterProps) {
                         data-filter="fire"
                         onClick={handleFilterClick}
                     >
-                        🔥 Fire
+                        Fires
                     </button>
                     <button
                         className={`filter-btn ${activeFilter === 'earthquake' ? 'active' : ''}`}
                         data-filter="earthquake"
                         onClick={handleFilterClick}
                     >
-                        🌍 Earthquake
+                        Quakes
                     </button>
                 </div>
 
@@ -94,7 +94,7 @@ function Filter({ initialActiveFilter='all', onFilterChange }: FilterProps) {
                             <div className="magnitude-labels">
                                 {/* Displays the current minMagnitude state, formatted to one decimal */}
                                 <span className="magnitude-value">{minMagnitude.toFixed(1)}</span>
-                                <span className="magnitude-scale">Richter Scale</span>
+                                <span className="magnitude-scale">minimum shown</span>
                             </div>
                         </div>
                     </div>

@@ -1,0 +1,27 @@
+.footer {
+  border-top: 1px solid var(--line);
+  background: var(--bg-2);
+  margin-top: auto;
+}
+.footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px 48px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr);
+  gap: 40px;
+}
+.footer-brand { display: flex; gap: 14px; align-items: flex-start; }
+.footer-brand .logo-mark { width: 30px; height: 30px; flex: none; }
+.footer-brand strong { display: block; margin-bottom: 6px; }
+.footer-brand p { color: var(--muted); font-size: 0.875rem; max-width: 38ch; }
+.footer-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.footer-cols > div { display: flex; flex-direction: column; gap: 10px; }
+.footer-cols .eyebrow { margin-bottom: 4px; }
+.footer-cols a { color: var(--text); text-decoration: none; font-size: 0.9375rem; opacity: 0.85; }
+.footer-cols a:hover { color: var(--accent); opacity: 1; }
+
+@media (max-width: 800px) {
+  .footer-inner { grid-template-columns: minmax(0, 1fr); }
+  .footer-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

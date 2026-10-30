@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
+import { Phone, MousePointerClick, Navigation } from 'lucide-react';
 import './Map.css'
-import Hamburger from '../Navigation/Hamburger';
 
 import Search from './SubComponents/Search';
 import Filters from './SubComponents/Filter';
@@ -10,92 +9,58 @@ import MapComponent from './SubComponents/MapComponent';
 
 type FilterType = 'all' | 'fire' | 'earthquake';
 
-interface MapPageProps {
-    isSidebarActive: boolean;
-    toggleSidebar: () => void;
-}
-
-function Map({ isSidebarActive, toggleSidebar}: MapPageProps) {
+function Map() {
 
     const [currentSearchLocation, setCurrentSearchLocation] = useState<string>('');
     const [activeFilter, setActiveFilter] = useState<FilterType>('all');
     const [minMagnitude, setMinMagnitude] = useState<number>(1.0);
     const [isContactsModalOpen, setIsContactsModalOpen] = useState(false);
 
-    const handleSearchSubmit = (searchTerm: string) => {
-        setCurrentSearchLocation(searchTerm);
-        console.log('Parent received search term:', searchTerm);
-    }
-
     const handleFilterChange = (filter: FilterType, magnitude?: number) => {
         setActiveFilter(filter);
-        if (magnitude != undefined) {
+        if (magnitude !== undefined) {
             setMinMagnitude(magnitude);
         }
-        console.log('Parent received filter:', filter,'. Magnitude received.');
     };
-
-    const handleOpenContacts = () => {
-        setIsContactsModalOpen(true);
-    };
-    const handleCloseContacts = () => {
-        setIsContactsModalOpen(false);
-    };
-
 
     return(
-        <div>
+        <main className="map-page">
+            <aside className="sidebarMap">
+                <div className="sidebar-intro">
+                    <span className="eyebrow">Live map</span>
+                    <h1>Hazards across Canada</h1>
+                </div>
 
-            {/* Overlay */}
-            <div className="overlay" id="overlay"></div>
+                {/* Search */}
+                <Search onSearch={setCurrentSearchLocation}/>
 
-            <header className="headerMap">
-                <Hamburger 
-                    isSidebarActive={isSidebarActive}
-                    onToggleSidebar={toggleSidebar}
-                />
-                <p className="page-titleMap">Interactive Map</p>
-            </header>
+                {/* Filters */}
+                <Filters onFilterChange={handleFilterChange}/>
 
-            {/* Main content area */}
-            <main className="main-contentMap">
-                <aside className="sidebarMap">
+                {/* How to get a route */}
+                <div className="sidebar-section">
+                    <h3 className="sidebar-title">Find a route out</h3>
+                    <ol className="howto">
+                        <li><MousePointerClick size={16} /><span>Click a fire on the map</span></li>
+                        <li><Navigation size={16} /><span>Press <b>Find Safe Route</b> to rank routes to nearby safe zones</span></li>
+                    </ol>
+                </div>
 
-                    {/* Search */}
-                    <Search onSearch={handleSearchSubmit}/>
+                {/* Emergency contacts */}
+                <button className="btn btn-danger contacts-btn" onClick={() => setIsContactsModalOpen(true)}>
+                    <Phone size={16} /> Emergency contacts
+                </button>
+            </aside>
 
-                    {/* Filters */}
-                    <Filters onFilterChange={handleFilterChange}/>
+            <Contacts isOpen={isContactsModalOpen} onClose={() => setIsContactsModalOpen(false)} />
 
-                    {/* Emergency contacts */}
-                    <div className="sidebar-section">
-                        <h3 className="sidebar-title">Help/Info</h3>
-                        <p style={{fontSize: '0.9rem', lineHeight: '1.5', color: 'rgba(255, 255, 255, 0.8)', marginBottom: '1rem'}}>
-                            Use the map to view real-time disaster information and plan safe evacuation routes.
-                        </p>
-                        <button
-                            className="btn btn-danger"
-                            style={{width: '100%'}}
-                            onClick={handleOpenContacts}
-                        >
-                            Emergency Contacts
-                        </button>
-                    </div>  
-
-                </aside>
-
-                <Contacts isOpen={isContactsModalOpen} onClose={handleCloseContacts} />
-
-                {/* Map Component */}
-                <MapComponent 
-                    searchLocation={currentSearchLocation}
-                    activeFilter={activeFilter}
-                    minMagnitude={minMagnitude}
-                />
-
-            </main>
-
-        </div>
+            {/* Map Component */}
+            <MapComponent
+                searchLocation={currentSearchLocation}
+                activeFilter={activeFilter}
+                minMagnitude={minMagnitude}
+            />
+        </main>
     );
 }
 

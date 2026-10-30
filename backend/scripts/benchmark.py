@@ -56,6 +56,19 @@ def main() -> None:
         print(f"  /api/hazards/{kind:<12} p50 {p50:6.1f} ms   p95 {p95:6.1f} ms   "
               f"{size / 1024:,.0f} KB JSON, {wire / 1024:,.0f} KB sent")
 
+    print(f"\nRepeat visits (If-None-Match, {args.requests} requests each)")
+    for kind in ("fires", "earthquakes"):
+        url = f"{args.base}/api/hazards/{kind}"
+        session = requests.Session()
+        etag = session.get(url, timeout=30).headers.get("ETag", "")
+        samples = []
+        for _ in range(args.requests):
+            res, secs = timed(lambda: session.get(url, headers={"If-None-Match": etag}, timeout=30))
+            samples.append(secs * 1000)
+        samples.sort()
+        print(f"  /api/hazards/{kind:<12} p50 {statistics.median(samples):6.1f} ms   "
+              f"status {res.status_code}, {len(res.content)} bytes sent")
+
     fire_job = lambda: sources.fetch_fires(s.firms_map_key, s.firms_days, s.firms_min_frp)  # noqa: E731
     quake_job = lambda: sources.fetch_earthquakes(s.usgs_days)  # noqa: E731
 

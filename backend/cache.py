@@ -1,19 +1,17 @@
-"""Cache backends.
+"""In-process cache for hazard data.
 
-Production uses Redis (e.g. Upstash) through REDIS_URL. Without it, an in-process
-memory cache with the same small interface keeps local development dependency-free.
+The app runs as a single process with several threads, so one dictionary guarded by a
+lock is shared by every request and by the refresh worker. Hazard payloads are stored
+gzip-compressed, next to a small metadata entry used for health checks and ETags.
 """
 
 import gzip
 import json
-import logging
 import threading
 import time
 from typing import Any, Optional, Union
 
 Value = Union[str, bytes]
-
-log = logging.getLogger(__name__)
 
 
 class MemoryCache:
@@ -49,46 +47,6 @@ class MemoryCache:
             if self._alive(key) == value:
                 del self._data[key]
 
-    def ping(self) -> bool:
-        return True
-
-
-class RedisCache:
-    name = "redis"
-
-    # Only delete the lock if we still own it, atomically.
-    _RELEASE = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end"
-
-    def __init__(self, url: str) -> None:
-        import redis  # imported lazily so tests and local dev don't need a server
-
-        # Raw bytes: hazard payloads are stored gzip-compressed and served without decoding.
-        self._r = redis.Redis.from_url(url, socket_timeout=5, health_check_interval=30)
-        self._release = self._r.register_script(self._RELEASE)
-
-    def get(self, key: str) -> Optional[bytes]:
-        return self._r.get(key)
-
-    def set(self, key: str, value: Value, ex: Optional[int] = None, nx: bool = False) -> bool:
-        return bool(self._r.set(key, value, ex=ex, nx=nx))
-
-    def delete_if_equals(self, key: str, value: str) -> None:
-        self._release(keys=[key], args=[value])
-
-    def ping(self) -> bool:
-        try:
-            return bool(self._r.ping())
-        except Exception:  # noqa: BLE001
-            return False
-
-
-def make_cache(redis_url: str):
-    if redis_url:
-        log.info("Using Redis cache")
-        return RedisCache(redis_url)
-    log.warning("REDIS_URL not set, using in-memory cache (fine for local dev only)")
-    return MemoryCache()
-
 
 GZIP_MAGIC = b"\x1f\x8b"
 
@@ -104,6 +62,14 @@ def get_json(cache, key: str) -> Optional[Any]:
     return json.loads(gzip.decompress(raw) if is_gzip(raw) else raw)
 
 
-def set_json(cache, key: str, value: Any, ttl: int, compress: bool = False) -> None:
-    body = json.dumps(value, separators=(",", ":")).encode()
-    cache.set(key, gzip.compress(body, compresslevel=6) if compress else body, ex=ttl)
+def get_meta(cache, key: str) -> Optional[dict]:
+    raw = cache.get(f"{key}:meta")
+    return json.loads(raw) if raw else None
+
+
+def store_hazards(cache, key: str, data: list, ttl: int) -> None:
+    """Compress a dataset once and store it with its metadata."""
+    meta = {"updated_at": int(time.time() * 1000), "count": len(data)}
+    body = json.dumps({**meta, "data": data}, separators=(",", ":")).encode()
+    cache.set(key, gzip.compress(body, compresslevel=6), ex=ttl)
+    cache.set(f"{key}:meta", json.dumps(meta), ex=ttl)

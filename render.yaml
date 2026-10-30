@@ -1,10 +1,11 @@
 # One Render web service: Flask serves the API and the built React app.
+# One Gunicorn process with threads, so every request shares a single in-memory cache.
 services:
   - type: web
     name: saferoute
     runtime: python
     buildCommand: pip install -r backend/requirements.txt && cd frontend && npm ci && npm run build
-    startCommand: gunicorn --chdir backend -w 2 --threads 4 -b 0.0.0.0:$PORT "app:create_app()"
+    startCommand: gunicorn --chdir backend -w 1 --threads 8 -b 0.0.0.0:$PORT "app:create_app()"
     healthCheckPath: /api/health
     envVars:
       - key: PYTHON_VERSION
@@ -12,6 +13,4 @@ services:
       - key: FIRMS_MAP_KEY
         sync: false
       - key: ORS_API_KEY
-        sync: false
-      - key: REDIS_URL
         sync: false

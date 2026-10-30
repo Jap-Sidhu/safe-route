@@ -15,7 +15,6 @@ def _int(name: str, default: int) -> int:
 class Settings:
     firms_map_key: str = field(default_factory=lambda: os.getenv("FIRMS_MAP_KEY", ""))
     ors_api_key: str = field(default_factory=lambda: os.getenv("ORS_API_KEY", ""))
-    redis_url: str = field(default_factory=lambda: os.getenv("REDIS_URL", ""))
 
     # How often the background worker refreshes hazard data, and how long cached data lives.
     refresh_interval: int = field(default_factory=lambda: _int("REFRESH_INTERVAL_SECONDS", 600))

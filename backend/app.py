@@ -3,6 +3,7 @@
 import gzip
 import logging
 import os
+import time
 from pathlib import Path
 
 import requests
@@ -11,8 +12,8 @@ from flask import Flask, abort, jsonify, request, send_from_directory
 
 load_dotenv()
 
-from cache import get_json, is_gzip, make_cache  # noqa: E402
-from config import KEY_FIRES, KEY_QUAKES, Settings  # noqa: E402
+from cache import MemoryCache, get_meta, is_gzip  # noqa: E402
+from config import KEY_FIRES, KEY_LOCK, KEY_QUAKES, Settings  # noqa: E402
 from refresher import refresh_once, start_worker  # noqa: E402
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -24,7 +25,7 @@ DIST_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 def create_app(cache=None, settings: Settings | None = None) -> Flask:
     settings = settings or Settings()
-    cache = cache if cache is not None else make_cache(settings.redis_url)
+    cache = cache if cache is not None else MemoryCache()
 
     app = Flask(__name__, static_folder=None)
     app.config["CACHE"] = cache
@@ -33,33 +34,49 @@ def create_app(cache=None, settings: Settings | None = None) -> Flask:
     if settings.run_worker:
         start_worker(cache, settings)
 
-    def hazard_response(key: str):
+    def load(key: str):
         raw = cache.get(key)
-        if raw is None:
-            # Cold start: nothing cached yet, so refresh this dataset inline once.
-            refresh_once(cache, settings, only=key)
-            raw = cache.get(key)
-        if raw is None:
+        if raw is not None:
+            return raw
+        # Cold start (first boot, or waking from sleep): fetch this dataset inline.
+        if refresh_once(cache, settings, only=key).get("lock") == "busy":
+            # A refresh is already running; wait for it instead of fetching twice.
+            deadline = time.monotonic() + settings.lock_ttl
+            while raw is None and time.monotonic() < deadline:
+                time.sleep(0.1)
+                raw = cache.get(key)
+                if raw is None and cache.get(KEY_LOCK) is None:
+                    break
+        return cache.get(key)
+
+    def hazard_response(key: str):
+        raw = load(key)
+        meta = get_meta(cache, key)
+        if raw is None or meta is None:
             return jsonify(error="Hazard data is temporarily unavailable. Try again in a minute."), 503
-        # The cache holds gzip-compressed JSON. Browsers that accept gzip (all of them) get the
-        # stored bytes untouched; anything else gets it decompressed.
-        res = app.response_class(mimetype="application/json")
-        if is_gzip(raw) and "gzip" in request.headers.get("Accept-Encoding", ""):
-            res.set_data(raw)
-            res.headers["Content-Encoding"] = "gzip"
+
+        # The ETag changes only when the data does, so a returning browser gets a tiny 304.
+        etag = f'"{key}-{meta["updated_at"]}"'
+        if etag in request.headers.get("If-None-Match", ""):
+            res = app.response_class(status=304)
         else:
-            res.set_data(gzip.decompress(raw) if is_gzip(raw) else raw)
+            # Stored gzip-compressed: browsers that accept gzip (all of them) get the bytes
+            # untouched; anything else gets them decompressed.
+            res = app.response_class(mimetype="application/json")
+            if is_gzip(raw) and "gzip" in request.headers.get("Accept-Encoding", ""):
+                res.set_data(raw)
+                res.headers["Content-Encoding"] = "gzip"
+            else:
+                res.set_data(gzip.decompress(raw) if is_gzip(raw) else raw)
+        res.headers["ETag"] = etag
         res.headers["Vary"] = "Accept-Encoding"
         res.headers["Cache-Control"] = "public, max-age=60"
         return res
 
     @app.get("/api/health")
     def health():
-        datasets = {}
-        for key in (KEY_FIRES, KEY_QUAKES):
-            payload = get_json(cache, key)
-            datasets[key] = {"updated_at": payload["updated_at"], "count": payload["count"]} if payload else None
-        return jsonify(status="ok", cache=cache.name, cache_reachable=cache.ping(), datasets=datasets)
+        datasets = {key: get_meta(cache, key) for key in (KEY_FIRES, KEY_QUAKES)}
+        return jsonify(status="ok", cache=cache.name, datasets=datasets)
 
     @app.get("/api/hazards/fires")
     def fires():

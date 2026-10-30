@@ -1,110 +1,66 @@
-import React from 'react';
-import { Shield, Home, TreePine } from 'lucide-react';
-import './SafetyGuide.css';
-import Hamburger from '../Navigation/Hamburger';
-import { wildfireData, type WildfireContentProps, type AlertItem } from './wildfireData';
+import { Shield, Home, TreePine, AlertTriangle } from 'lucide-react';
+import GuideLayout, { GuideSection } from './GuideLayout';
+import { wildfireData } from './wildfireData';
 
-// Wildfire Component
-const WildfireContent: React.FC<WildfireContentProps> = ({ content }) => (
-  <div className="wildfire-content">
-    {/* Emergency Safety Guide Heading */}
-    <div className="emergency-safety-heading">
-      <h1 className="safety-guide-title">Emergency Safety Guide</h1>
-      <div className="title-divider"></div>
-      <h2 className="disaster-type">Wildfires</h2>
-    </div>
-    
-    {/* evacuation alerts */}
-    <div className="glass-card">
-      <h3 className="card-title">Evacuation Alerts</h3>
-      <div className="alerts-grid">
-        {content.alerts.map((alert: AlertItem, index: number) => (
-          <div key={index} className="alert-card">
-            <div className="alert-type">{alert.type}</div>
-            <div className="alert-action">{alert.action}</div>
-          </div>
-        ))}
-      </div>
-    </div>
+function Wildfire() {
+    const content = wildfireData;
+    return (
+        <GuideLayout
+            kind="fire"
+            title="Wildfires"
+            lede="What the alert levels mean, how to get ready before a fire is near, and what to do if you have to leave or stay put."
+        >
+            <GuideSection label="01 · Alert levels" title="Know the difference">
+                <div className="alert-levels">
+                    {content.alerts.map((alert, i) => (
+                        <div key={alert.type} className={`alert-level ${i === 0 ? 'order' : 'alert'}`}>
+                            <span className="alert-level-tag mono">{i === 0 ? 'Leave now' : 'Get ready'}</span>
+                            <h3>{alert.type}</h3>
+                            <p>{alert.action}</p>
+                        </div>
+                    ))}
+                </div>
+            </GuideSection>
 
-    {/* preparation */}
-    <div className="glass-card">
-      <h3 className="card-title">General Preparedness</h3>
-      <div className="prep-grid">
-        {content.preparation.map((item: string, index: number) => (
-          <div key={index} className="prep-item">
-            <Shield className="w-4 h-4 text-primary" />
-            <span>{item}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+            <GuideSection label="02 · Before" title="General preparedness">
+                <ul className="check-grid">
+                    {content.preparation.map(item => (
+                        <li key={item}><Shield size={18} /><span>{item}</span></li>
+                    ))}
+                </ul>
+            </GuideSection>
 
-    {/* if you must evacuate */}
-    <div className="glass-card">
-      <h3 className="card-title">If You Must Evacuate</h3>
-      <div className="evacuation-steps">
-        {content.evacuation.map((step: string, index: number) => (
-          <div key={index} className="evacuation-step">
-            <div className="step-number">{index + 1}</div>
-            <div className="step-text">{step}</div>
-          </div>
-        ))}
-      </div>
-    </div>
+            <GuideSection label="03 · Leaving" title="If you must evacuate">
+                <ol className="steps-list">
+                    {content.evacuation.map((step, i) => (
+                        <li key={step}><span className="step-n mono">{i + 1}</span><span>{step}</span></li>
+                    ))}
+                </ol>
+            </GuideSection>
 
-    {/* shelter in place */}
-    <div className="glass-card">
-      <h3 className="card-title">If You Don't Evacuate (Shelter in Place)</h3>
-      <div className="shelter-grid">
-        {content.shelter.map((item: string, index: number) => (
-          <div key={index} className="shelter-item">
-            <Home className="w-4 h-4 text-secondary" />
-            <span>{item}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+            <GuideSection label="04 · Staying" title="If you don't evacuate (shelter in place)">
+                <ul className="check-grid">
+                    {content.shelter.map(item => (
+                        <li key={item}><Home size={18} /><span>{item}</span></li>
+                    ))}
+                </ul>
+            </GuideSection>
 
-    {/* hiking/camping */}
-    <div className="glass-card">
-      <h3 className="card-title">Hiking & Camping Safety</h3>
-      <div className="hiking-grid">
-        {content.hiking.map((item: string, index: number) => (
-          <div key={index} className="hiking-item">
-            <TreePine className="w-4 h-4 text-primary" />
-            <span>{item}</span>
-          </div>
-        ))}
-      </div>
-      <div className="danger-note">
-        <strong>If caught in wildfire:</strong> Call emergency services, look for safe areas (minimal vegetation, water bodies, rocky terrain), and as last resort, find low terrain and cover yourself with dirt or wool.
-      </div>
-    </div>
-  </div>
-);
-
-interface WildfirePageProps {
-    isSidebarActive: boolean;
-    toggleSidebar: () => void;
+            <GuideSection label="05 · Outdoors" title="Hiking and camping">
+                <ul className="check-grid">
+                    {content.hiking.map(item => (
+                        <li key={item}><TreePine size={18} /><span>{item}</span></li>
+                    ))}
+                </ul>
+                <div className="danger-box">
+                    <AlertTriangle size={20} />
+                    <p><strong>Caught near a wildfire?</strong> Call 911 and report the fire to BC Wildfire Service
+                        at <span className="mono">*5555</span> on a cell phone. Head for areas with little vegetation, water or rocky ground.
+                        As a last resort, find low ground and cover yourself with dirt or a wool blanket.</p>
+                </div>
+            </GuideSection>
+        </GuideLayout>
+    );
 }
 
-// Main Wildfire Export
-const Wildfire: React.FC<WildfirePageProps> = ({ isSidebarActive, toggleSidebar }) => {
-    return (
-        <div className="wildfire-page-container"> 
-            <header className="header">
-                <Hamburger
-                    isSidebarActive={isSidebarActive}
-                    onToggleSidebar={toggleSidebar} 
-                />
-            </header>
-
-            {/* Render the WildfireContent with the data */}
-            <WildfireContent content={wildfireData} />
-        </div>
-    );
-};
-
 export default Wildfire;
-export { WildfireContent };

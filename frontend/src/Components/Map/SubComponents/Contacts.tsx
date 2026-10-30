@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'; 
+import { useEffect, useRef } from 'react';
+import { X, Siren, Flame, HeartPulse, Info } from 'lucide-react';
 import './Contacts.css';
 
 interface ContactsProps {
@@ -6,160 +7,101 @@ interface ContactsProps {
     onClose: () => void;
 }
 
+interface Contact {
+    name: string;
+    number: string;
+    dial: string;     // what the phone actually dials
+    note?: string;
+}
+
+// British Columbia numbers. 911 always comes first.
+const GROUPS: { title: string; icon: typeof Siren; tone: string; contacts: Contact[] }[] = [
+    {
+        title: 'Immediate emergency',
+        icon: Siren,
+        tone: 'critical',
+        contacts: [{ name: 'Police, fire, ambulance', number: '911', dial: '911', note: 'Life-threatening situations' }],
+    },
+    {
+        title: 'Wildfire',
+        icon: Flame,
+        tone: 'fire',
+        contacts: [
+            { name: 'Report a wildfire (BC Wildfire Service)', number: '1-800-663-5555', dial: '18006635555' },
+            { name: 'Report a wildfire from a cell phone', number: '*5555', dial: '*5555' },
+        ],
+    },
+    {
+        title: 'Health',
+        icon: HeartPulse,
+        tone: 'health',
+        contacts: [
+            { name: 'HealthLink BC (nurse line)', number: '8-1-1', dial: '811' },
+            { name: 'BC Drug & Poison Information Centre', number: '1-800-567-8911', dial: '18005678911' },
+        ],
+    },
+    {
+        title: 'Support and information',
+        icon: Info,
+        tone: 'info',
+        contacts: [
+            { name: 'bc211 (community and disaster services)', number: '2-1-1', dial: '211' },
+            { name: 'Canadian Red Cross', number: '1-800-418-1111', dial: '18004181111' },
+        ],
+    },
+];
+
 function Contacts({ isOpen, onClose }: ContactsProps) {
-    const modalOverlayRef = useRef<HTMLDivElement>(null);
+    const overlayRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'auto';
-        }
-
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                onClose();
-            }
-        };
-
-        const handleClickOutside = (e: MouseEvent) => {
-            if (modalOverlayRef.current && e.target === modalOverlayRef.current) {
-                onClose();
-            }
-        };
-
-        if (isOpen) {
-            document.addEventListener('keydown', handleKeyDown);
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
+        if (!isOpen) return;
+        document.body.style.overflow = 'hidden';
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        const onClick = (e: MouseEvent) => { if (e.target === overlayRef.current) onClose(); };
+        document.addEventListener('keydown', onKey);
+        document.addEventListener('mousedown', onClick);
         return () => {
-            document.removeEventListener('keydown', handleKeyDown);
-            document.removeEventListener('mousedown', handleClickOutside);
-            document.body.style.overflow = 'auto';
+            document.removeEventListener('keydown', onKey);
+            document.removeEventListener('mousedown', onClick);
+            document.body.style.overflow = '';
         };
     }, [isOpen, onClose]);
 
-    const handleCall = (phoneNumber: string) => {
-        const telLink = `tel:${phoneNumber.replace(/[^0-9+]/g, '')}`;
-        window.open(telLink);
-    };
-
-    if (!isOpen) {
-        return null;
-    }
+    if (!isOpen) return null;
 
     return (
-        // Apply the 'active' class conditionally 
-        <div className={`modal-overlay ${isOpen ? 'active' : ''}`} ref={modalOverlayRef}>
-            <div className="modal">
-                <div className="modal-header">
-                    <h2 className="modal-title">🚨 Emergency Contacts</h2>
-                    <button className="modal-close" onClick={onClose}>×</button>
+        <div className="contacts-overlay" ref={overlayRef}>
+            <div className="contacts-modal" role="dialog" aria-modal="true" aria-labelledby="contacts-title">
+                <header className="contacts-head">
+                    <div>
+                        <span className="eyebrow">British Columbia</span>
+                        <h2 id="contacts-title">Emergency contacts</h2>
+                    </div>
+                    <button className="contacts-close" onClick={onClose} aria-label="Close"><X size={20} /></button>
+                </header>
+
+                <div className="contacts-body">
+                    {GROUPS.map(group => (
+                        <section key={group.title} className={`contacts-group ${group.tone}`}>
+                            <h3><group.icon size={16} /> {group.title}</h3>
+                            {group.contacts.map(c => (
+                                <a key={c.name} className="contact-row" href={`tel:${c.dial}`}>
+                                    <span className="contact-text">
+                                        <span className="contact-name">{c.name}</span>
+                                        {c.note && <span className="contact-note">{c.note}</span>}
+                                    </span>
+                                    <span className="contact-number mono">{c.number}</span>
+                                </a>
+                            ))}
+                        </section>
+                    ))}
                 </div>
-                <div className="modal-content">
-                    {/* modal content for emergency contacts */}
-                    <div className="emergency-section critical">
-                        <div className="emergency-header">
-                            <span className="emergency-icon">🚨</span>
-                            <div className="emergency-info">
-                                <h3>Immediate Emergency</h3>
-                                <p>Life-threatening situations requiring immediate response</p>
-                            </div>
-                        </div>
-                        <div className="emergency-contacts">
-                            <div className="emergency-contact">
-                                <div className="contact-info">
-                                    <span className="contact-name">Emergency Services</span>
-                                    <span className="contact-number">911</span>
-                                </div>
-                                <button className="call-btn" onClick={() => handleCall('911')}>Call</button>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div className="emergency-section">
-                        <div className="emergency-header">
-                            <span className="emergency-icon">🚒</span>
-                            <div className="emergency-info">
-                                <h3>Fire & Rescue</h3>
-                                <p>Fire emergencies, wildfire evacuations, rescue operations</p>
-                            </div>
-                        </div>
-                        <div className="emergency-contacts">
-                            <div className="emergency-contact">
-                                <div className="contact-info">
-                                    <span className="contact-name">Fire Department</span>
-                                    <span className="contact-number">911</span>
-                                </div>
-                                <button className="call-btn" onClick={() => handleCall('911')}>Call</button>
-                            </div>
-                            <div className="emergency-contact">
-                                <div className="contact-info">
-                                    <span className="contact-name">Fire Info Hotline</span>
-                                    <span className="contact-number">1-800-FIRE-411</span>
-                                </div>
-                                <button className="call-btn" onClick={() => handleCall('18003473411')}>Call</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="emergency-section">
-                        <div className="emergency-header">
-                            <span className="emergency-icon">🚑</span>
-                            <div className="emergency-info">
-                                <h3>Medical Emergency</h3>
-                                <p>Medical emergencies, poison control, health services</p>
-                            </div>
-                        </div>
-                        <div className="emergency-contacts">
-                            <div className="emergency-contact">
-                                <div className="contact-info">
-                                    <span className="contact-name">Medical Emergency</span>
-                                    <span className="contact-number">911</span>
-                                </div>
-                                <button className="call-btn" onClick={() => handleCall('911')}>Call</button>
-                            </div>
-                            <div className="emergency-contact">
-                                <div className="contact-info">
-                                    <span className="contact-name">Poison Control</span>
-                                    <span className="contact-number">1-800-222-1222</span>
-                                </div>
-                                <button className="call-btn" onClick={() => handleCall('18002221222')}>Call</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="emergency-section">
-                        <div className="emergency-header">
-                            <span className="emergency-icon">🌍</span>
-                            <div className="emergency-info">
-                                <h3>Disaster Information</h3>
-                                <p>Earthquake updates, disaster preparedness, community resources</p>
-                            </div>
-                        </div>
-                        <div className="emergency-contacts">
-                            <div className="emergency-contact">
-                                <div className="contact-info">
-                                    <span className="contact-name">Emergency Info Line</span>
-                                    <span className="contact-number">211</span>
-                                </div>
-                                <button className="call-btn" onClick={() => handleCall('211')}>Call</button>
-                            </div>
-                            <div className="emergency-contact">
-                                <div className="contact-info">
-                                    <span className="contact-name">Red Cross Emergency</span>
-                                    <span className="contact-number">1-800-RED-CROSS</span>
-                                </div>
-                                <button className="call-btn" onClick={() => handleCall('18007332767')}>Call</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="emergency-note">
-                        <p><strong>⚠️ Important:</strong> In life-threatening emergencies, always call 911 first. These numbers are for information and non-critical assistance.</p>
-                    </div>
-                </div>
+                <footer className="contacts-foot">
+                    In a life-threatening emergency, always call <b className="mono">911</b> first.
+                    For evacuation orders, check <a href="https://www.emergencyinfobc.gov.bc.ca/" target="_blank" rel="noopener noreferrer">EmergencyInfoBC</a>.
+                </footer>
             </div>
         </div>
     );
