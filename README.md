@@ -177,6 +177,7 @@ Hazard responses include an `ETag`. Send it back as `If-None-Match` to get a `30
 safe-route/
 ├── backend/
 │   ├── app.py            Flask app: hazard endpoints, routing proxy, serves the built frontend
+│   ├── index.py          Serverless entry point for Vercel
 │   ├── refresher.py      Background worker: lock → parallel fetch → write with TTL
 │   ├── sources.py        NASA FIRMS + USGS clients and data normalization
 │   ├── cache.py          Thread-safe in-memory cache: gzip payloads, metadata, TTLs
@@ -190,8 +191,7 @@ safe-route/
 │       ├── hooks/           Live status polling (/api/health)
 │       └── Components/      Layout (top bar, footer), Homepage, Map, SafetyGuide
 ├── docs/
-├── api/index.py          Vercel serverless entry point
-├── vercel.json           Vercel build, function and routing config
+├── vercel.json           Vercel services (web + api) and routing
 ├── render.yaml           Render deployment (single web service)
 └── LICENSE
 ```
@@ -208,9 +208,16 @@ cd backend && python -m pytest
 
 ### Vercel (recommended, free)
 
-`vercel.json` builds the React app as static files and runs Flask as a Python serverless function (`api/index.py`) for every `/api/*` request.
+`vercel.json` deploys the repo as one Vercel project with two [services](https://vercel.com/docs/services) on the same domain:
 
-1. Push the repo to GitHub, then on [vercel.com](https://vercel.com) choose **Add New → Project** and import it. Leave the framework preset as **Other**, since `vercel.json` sets the build.
+| Service | Folder | What it is | Public path |
+|---|---|---|---|
+| `web` | `frontend/` | React app, built with Vite and served as static files | `/` |
+| `api` | `backend/` | Flask, run as a Python serverless function (`backend/index.py`) | `/api/*` |
+
+The browser calls the API on the same domain, so there's no CORS and no service-to-service bindings. Deep links like `/Map` work because the build copies `index.html` to `404.html`.
+
+1. Push the repo to GitHub, then on [vercel.com](https://vercel.com) choose **Add New → Project** and import it. Vercel reads the services from `vercel.json`.
 2. Under **Environment Variables**, add `FIRMS_MAP_KEY` and `ORS_API_KEY`.
 3. Click **Deploy**, then open `https://<your-project>.vercel.app/api/health` to check it.
 

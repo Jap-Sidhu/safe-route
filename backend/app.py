@@ -114,7 +114,7 @@ def create_app(cache=None, settings: Settings | None = None) -> Flask:
                 ORS_URL.format(profile=profile),
                 json={k: v for k, v in body.items() if k in allowed},
                 headers={"Authorization": settings.ors_api_key, "Accept": "application/geo+json"},
-                timeout=20,
+                timeout=9,  # stays under serverless time limits
             )
         except requests.RequestException:
             return jsonify(error="Routing service is unreachable right now."), 502
