@@ -1,0 +1,140 @@
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/*########################################################################*/
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+    gap: 2rem;
+}
+
+.title {
+    font-size: 4rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #ffffff 0%, #64ffda 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: glow 3s ease-in-out infinite alternate;
+}
+
+.subtitle {
+    font-size: 1.5rem;
+    color: #64ffda;
+    margin-bottom: 3rem;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+}
+
+@keyframes glow {
+    from { filter: drop-shadow(0 0 20px rgba(100, 255, 218, 0.3)); }
+    to { filter: drop-shadow(0 0 30px rgba(100, 255, 218, 0.6)); }
+}
+
+/*########################################################################*/
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.btn {
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #64ffda 0%, #4ecdc4 100%);
+    color: #0f0f23;
+}
+
+.btn-secondary {
+    background: rgba(100, 255, 218, 0.1);
+    color: #64ffda;
+    border: 2px solid #64ffda;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn:hover::before {
+    left: 100%;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(100, 255, 218, 0.3);
+}
+
+.btn-secondary:hover {
+    background: rgba(100, 255, 218, 0.2);
+}
+
+/* Safety Guide Button */
+.safety-guide {
+    margin-bottom: 3rem;
+}
+
+.btn-guide {
+    background: rgba(255, 107, 107, 0.1);
+    color: #ff6b6b;
+    border: 2px solid #ff6b6b;
+    padding: 1.2rem 2.5rem;
+    border-radius: 15px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.btn-guide:hover {
+    background: rgba(255, 107, 107, 0.2);
+    box-shadow: 0 10px 30px rgba(255, 107, 107, 0.3);
+}
+
+/*########################################################################*/
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .title {
+        font-size: 2.5rem;
+    }
+
+    .subtitle {
+        font-size: 1.2rem;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}

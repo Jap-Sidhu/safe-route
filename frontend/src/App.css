@@ -1,0 +1,13 @@
+/* Main Container */
+.container {
+    position: relative;
+    z-index: 100;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    transition: margin-left 0.3s ease;
+}
+
+.container.shifted {
+    margin-left: 320px;
+}

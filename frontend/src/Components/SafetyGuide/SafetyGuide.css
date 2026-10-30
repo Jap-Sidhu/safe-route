@@ -1,0 +1,366 @@
+
+/* Emergency Safety Guide Heading Styles */
+.emergency-safety-heading {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding: 2rem 0;
+}
+
+.safety-guide-title {
+  font-size: 3rem;
+  font-weight: bold;
+  background: linear-gradient(45deg, #64ffda, #4ecdc4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba(100, 255, 218, 0.5);
+  animation: glow 2s ease-in-out infinite alternate;
+  margin-bottom: 1rem;
+  line-height: 1.2;
+  letter-spacing: 1px;
+}
+
+.title-divider {
+  width: 570px;
+  height: 3px;
+  background: linear-gradient(45deg, #64ffda, #4ecdc4);
+  margin: 0 auto 1.5rem;
+  border-radius: 2px;
+  box-shadow: 0 0 15px rgba(100, 255, 218, 0.6);
+}
+
+.disaster-type {
+  font-size: 1.8rem;
+  color: #64ffda;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.section-icon {
+  padding: 1rem;
+  background: rgba(100, 255, 218, 0.1);
+  border-radius: 0.75rem;
+  color: #64ffda;
+}
+
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(100, 255, 218, 0.2);
+  border-radius: 1rem;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  animation: slideInFromBottom 0.5s ease-out;
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+  transition: left 0.6s;
+}
+
+.glass-card:hover::before {
+  left: 100%;
+}
+
+.glass-card:hover {
+  border-color: rgba(100, 255, 218, 0.4);
+  box-shadow: 0 8px 32px rgba(100, 255, 218, 0.15);
+  transform: translateY(-2px);
+}
+
+.card-title {
+  font-size: 1.5rem;
+  color: #64ffda;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.5px;
+}
+
+.signs-grid,
+.prep-grid,
+.shelter-grid,
+.hiking-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.sign-item,
+.prep-item,
+.shelter-item,
+.hiking-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.sign-item:hover,
+.prep-item:hover,
+.shelter-item:hover,
+.hiking-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.action-card {
+  text-align: center;
+  padding: 1.5rem;
+  background: rgba(100, 255, 218, 0.1);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(100, 255, 218, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(100,255,218,0.1), transparent);
+  transition: left 0.5s;
+}
+
+.action-card:hover::before {
+  left: 100%;
+}
+
+.action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 35px rgba(100, 255, 218, 0.3);
+  border-color: rgba(100, 255, 218, 0.5);
+}
+
+.action-icon {
+  color: #64ffda;
+  margin-bottom: 1rem;
+}
+
+.action-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #64ffda;
+  margin-bottom: 0.5rem;
+}
+
+.action-description {
+  color: #fff;
+  line-height: 1.6;
+}
+
+.important-note {
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  color: #ff6b6b;
+  font-weight: 500;
+}
+
+.situations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.situation-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(100, 255, 218, 0.2);
+  transition: all 0.3s ease;
+}
+
+.situation-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(100, 255, 218, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(100, 255, 218, 0.1);
+}
+
+.situation-title {
+  color: #64ffda;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.situation-steps {
+  list-style: none;
+}
+
+.situation-steps li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  line-height: 1.6;
+}
+
+.situation-steps li:last-child {
+  border-bottom: none;
+}
+
+.alerts-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.alert-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 0.5rem;
+}
+
+.alert-type {
+  font-weight: bold;
+  color: #ff6b6b;
+  min-width: 150px;
+}
+
+.alert-action {
+  color: #fff;
+  line-height: 1.6;
+}
+
+.evacuation-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.evacuation-step {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+}
+
+.step-number {
+  width: 2rem;
+  height: 2rem;
+  background: #64ffda;
+  color: #0f0f23;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.step-text {
+  color: #fff;
+  line-height: 1.6;
+}
+
+.danger-note {
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  color: #ff6b6b;
+  font-weight: 500;
+  margin-top: 1rem;
+}
+
+.emergency-contacts {
+  background: rgba(255, 107, 107, 0.1);
+  border-color: rgba(255, 107, 107, 0.3);
+}
+
+.contacts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 107, 107, 0.2);
+  transition: all 0.3s ease;
+}
+
+.contact-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 107, 107, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.1);
+}
+
+.contact-info {
+  flex: 1;
+}
+
+.contact-service {
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 0.25rem;
+}
+
+.contact-number {
+  color: #ff6b6b;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.text-primary {
+  color: #64ffda;
+}
+
+.text-secondary {
+  color: #4ecdc4;
+}
+
+.text-danger {
+  color: #ff6b6b;
+}
+
+/* global transition standard */
+.transition-standard {
+  transition: all 0.3s ease;
+}
