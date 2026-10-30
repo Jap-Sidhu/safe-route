@@ -70,73 +70,62 @@ const createUserLocationIcon = () => {
     });
 };
 
-// Custom Fire Marker
+// Marker icons (Lucide "flame" and "activity" glyphs), styled in MapComponent.css
+const FLAME_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>`;
+const QUAKE_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`;
+
+// Fire marker: a flame badge that grows with fire radiative power (MW)
 const createFireMarker = (fireData: FireData) => {
-    return L.circleMarker([fireData.lat, fireData.lng], {
-        radius: 17,
-        fillColor: '#ff6a2b',
-        color: '#ffffff',
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 0.8
+    const frp = Number(fireData.properties.fp) || 0;
+    const size = frp >= 50 ? 38 : frp >= 10 ? 32 : 26;
+    return L.marker([fireData.lat, fireData.lng], {
+        icon: L.divIcon({
+            className: 'hz-icon',
+            html: `<div class="hz-marker hz-fire${frp >= 50 ? ' hz-hot' : ''}" style="--s:${size}px">${FLAME_SVG}</div>`,
+            iconSize: [size, size],
+            iconAnchor: [size / 2, size / 2],
+            popupAnchor: [0, -size / 2],
+        }),
+        riseOnHover: true,
     });
 };
 
-// Custom Fire Cluster Icon
+// Fire cluster: a pill with the flame and how many detections it holds
 const createFireClusterIcon = (cluster: MarkerCluster) => {
     const count = cluster.getChildCount();
-    return new L.DivIcon({
-        html: `<div style="
-            background:#ff6a2b;
-            color:white;
-            border-radius:50%;
-            width:40px;
-            height:40px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-family:'JetBrains Mono',monospace;
-            font-weight:700;
-            font-size:14px;
-            box-shadow:0 0 0 3px rgba(10,14,19,0.55),0 2px 8px rgba(0,0,0,0.4);
-        ">${count}</div>`,
-        className: 'custom-cluster-icon',
-        iconSize: [40, 40]
+    return L.divIcon({
+        className: 'hz-icon',
+        html: `<div class="hz-cluster hz-fire">${FLAME_SVG}<span>${count}</span></div>`,
+        iconSize: [56, 32],
+        iconAnchor: [28, 16],
     });
 };
 
-// Custom Earthquake Marker
-const createEarthquakeMarker = (earthquakeData: EarthquakeData) => {   
-    return L.circleMarker([earthquakeData.lat, earthquakeData.lng], {
-        radius: 17,
-        fillColor: '#3b8eea',
-        color: '#ffffff',
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 0.8
+// Earthquake marker: a seismic-wave badge sized by magnitude, with the magnitude shown for M4+
+const createEarthquakeMarker = (earthquakeData: EarthquakeData) => {
+    const mag = earthquakeData.properties.magnitude ?? 0;
+    const size = Math.round(Math.min(44, Math.max(24, 18 + mag * 4)));
+    const label = mag >= 4 ? `<b>${mag.toFixed(1)}</b>` : QUAKE_SVG;
+    return L.marker([earthquakeData.lat, earthquakeData.lng], {
+        icon: L.divIcon({
+            className: 'hz-icon',
+            html: `<div class="hz-marker hz-quake${mag >= 4 ? ' hz-strong' : ''}" style="--s:${size}px">${label}</div>`,
+            iconSize: [size, size],
+            iconAnchor: [size / 2, size / 2],
+            popupAnchor: [0, -size / 2],
+        }),
+        riseOnHover: true,
     });
 };
 
-// Custom Earthquake Cluster Icon
+// Earthquake cluster: a pill with the wave and the event count
 const createEarthquakeClusterIcon = (cluster: MarkerCluster) => {
     const count = cluster.getChildCount();
-    return new L.DivIcon({
-        html: `<div style="
-            background:#3b8eea;
-            color:white;
-            border-radius:50%;
-            width:40px;
-            height:40px;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-family:'JetBrains Mono',monospace;
-            font-weight:700;
-            font-size:14px;
-            box-shadow:0 0 0 3px rgba(10,14,19,0.55),0 2px 8px rgba(0,0,0,0.4);
-        ">${count}</div>`,
-        className: 'custom-cluster-icon',
-        iconSize: [40, 40]
+    return L.divIcon({
+        className: 'hz-icon',
+        html: `<div class="hz-cluster hz-quake">${QUAKE_SVG}<span>${count}</span></div>`,
+        iconSize: [56, 32],
+        iconAnchor: [28, 16],
     });
 };
 
