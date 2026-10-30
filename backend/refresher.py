@@ -27,6 +27,14 @@ def _jobs(settings: Settings) -> dict[str, Callable[[], list]]:
     }
 
 
+def _redact(text: str, settings: Settings) -> str:
+    """Strip API keys from error messages (request URLs can contain them)."""
+    for secret in (settings.firms_map_key, settings.ors_api_key):
+        if secret:
+            text = text.replace(secret, "***")
+    return text
+
+
 def refresh_once(cache, settings: Settings, only: Optional[str] = None) -> dict[str, str]:
     """Run one refresh (of every dataset, or just `only`).
 
@@ -48,8 +56,11 @@ def refresh_once(cache, settings: Settings, only: Optional[str] = None) -> dict[
                     store_hazards(cache, key, data, settings.cache_ttl)
                     status[key] = f"ok ({len(data)})"
                 except Exception as exc:  # noqa: BLE001
-                    log.warning("refresh of %s failed, keeping previous cache: %s", key, exc)
-                    status[key] = f"failed: {exc}"
+                    reason = _redact(str(exc), settings)
+                    log.warning("refresh of %s failed, keeping previous cache: %s", key, reason)
+                    status[key] = f"failed: {reason}"
+                    # Remembered briefly so /api/health can say why a dataset is missing
+                    cache.set(f"{key}:error", reason[:300], ex=settings.cache_ttl)
     finally:
         cache.delete_if_equals(KEY_LOCK, token)
 

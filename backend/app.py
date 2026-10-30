@@ -83,7 +83,10 @@ def create_app(cache=None, settings: Settings | None = None) -> Flask:
             if not settings.run_worker:
                 load(key)  # no background worker (serverless): fetch on demand so health isn't empty
             datasets[key] = get_meta(cache, key)
-        res = jsonify(status="ok", cache=cache.name, datasets=datasets)
+        # Why a dataset is missing, if its last refresh failed (keys are redacted)
+        errors = {key: cache.get(f"{key}:error") for key in (KEY_FIRES, KEY_QUAKES)
+                  if datasets[key] is None and cache.get(f"{key}:error")}
+        res = jsonify(status="ok", cache=cache.name, datasets=datasets, errors=errors)
         res.headers["Cache-Control"] = "public, max-age=30, s-maxage=60"
         return res
 

@@ -11,10 +11,21 @@ def _int(name: str, default: int) -> int:
         return default
 
 
+def _secret(*names: str) -> str:
+    """Read an API key from the first variable that is set, ignoring whitespace or quotes
+    pasted in with it (common in hosting dashboards)."""
+    for name in names:
+        value = os.getenv(name, "").strip().strip("\"'").strip()
+        if value:
+            return value
+    return ""
+
+
 @dataclass(frozen=True)
 class Settings:
-    firms_map_key: str = field(default_factory=lambda: os.getenv("FIRMS_MAP_KEY", ""))
-    ors_api_key: str = field(default_factory=lambda: os.getenv("ORS_API_KEY", ""))
+    # NASA calls it a "MAP_KEY"; FIRMS_API_KEY is accepted too since that's an easy name to reach for.
+    firms_map_key: str = field(default_factory=lambda: _secret("FIRMS_MAP_KEY", "FIRMS_API_KEY"))
+    ors_api_key: str = field(default_factory=lambda: _secret("ORS_API_KEY"))
 
     # How often the background worker refreshes hazard data, and how long cached data lives.
     refresh_interval: int = field(default_factory=lambda: _int("REFRESH_INTERVAL_SECONDS", 600))

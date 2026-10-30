@@ -129,6 +129,28 @@ def test_health_fetches_on_demand_without_worker(client):
     assert datasets[KEY_FIRES]["count"] == 1 and datasets[KEY_QUAKES]["count"] == 1
 
 
+def test_health_explains_failures_without_leaking_keys(cache, monkeypatch):
+    def bad_key(*a, **k):
+        raise sources.SourceError("FIRMS said: Invalid MAP_KEY secret-123")
+    monkeypatch.setattr(sources, "fetch_fires", bad_key)
+    monkeypatch.setattr(sources, "fetch_earthquakes", lambda *a, **k: [QUAKE])
+    s = Settings(firms_map_key="secret-123", ors_api_key="", run_worker=False)
+    body = create_app(cache=cache, settings=s).test_client().get("/api/health").json
+    assert "Invalid MAP_KEY" in body["errors"][KEY_FIRES]
+    assert "secret-123" not in str(body)
+
+
+def test_keys_are_trimmed(monkeypatch):
+    monkeypatch.setenv("FIRMS_MAP_KEY", ' "abc123" \n')
+    assert Settings().firms_map_key == "abc123"
+
+
+def test_firms_api_key_alias(monkeypatch):
+    monkeypatch.delenv("FIRMS_MAP_KEY", raising=False)
+    monkeypatch.setenv("FIRMS_API_KEY", "abc123")
+    assert Settings().firms_map_key == "abc123"
+
+
 def test_health_reports_counts(client):
     client.get("/api/hazards/earthquakes")
     datasets = client.get("/api/health").json["datasets"]

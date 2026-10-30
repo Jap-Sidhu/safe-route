@@ -55,8 +55,10 @@ def parse_firms_csv(text: str, min_frp: float = 0.0) -> list[dict]:
 
 def fetch_fires(map_key: str, days: int = 2, min_frp: float = 0.0) -> list[dict]:
     if not map_key:
-        raise SourceError("FIRMS_MAP_KEY is not set")
+        raise SourceError("FIRMS_MAP_KEY (or FIRMS_API_KEY) is not set")
     area = ",".join(str(v) for v in FIRE_BBOX)
+
+    errors: list[str] = []
 
     def fetch_source(source: str) -> list[dict] | None:
         url = FIRMS_URL.format(key=map_key, source=source, area=area, days=max(1, min(days, 10)))
@@ -65,17 +67,19 @@ def fetch_fires(map_key: str, days: int = 2, min_frp: float = 0.0) -> list[dict]
             res.raise_for_status()
             # FIRMS reports bad keys and quota errors as plain text with a 200 status.
             if not res.text.startswith("latitude"):
-                raise SourceError(res.text[:120])
+                raise SourceError(res.text.strip()[:120] or "empty response")
             return parse_firms_csv(res.text, min_frp)
         except Exception as exc:  # noqa: BLE001
-            log.warning("FIRMS %s failed: %s", source, exc)
+            reason = f"{type(exc).__name__}: {exc}".replace(map_key, "***")  # request URLs contain the key
+            log.warning("FIRMS %s failed: %s", source, reason)
+            errors.append(f"{source}: {reason}")
             return None
 
     # Each satellite is a separate request, so fetch them at the same time.
     with ThreadPoolExecutor(max_workers=len(FIRMS_SOURCES)) as pool:
         results = list(pool.map(fetch_source, FIRMS_SOURCES))
     if all(r is None for r in results):
-        raise SourceError("all FIRMS sources failed")
+        raise SourceError("all FIRMS sources failed. " + " | ".join(errors))
     return [fire for r in results if r for fire in r]
 
 
