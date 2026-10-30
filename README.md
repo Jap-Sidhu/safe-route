@@ -60,14 +60,14 @@ flowchart TB
 
 **Loading the map**
 1. The page calls `/api/hazards/fires` and `/api/hazards/earthquakes`.
-2. Flask reads the JSON stored in Redis and sends it back unchanged. It doesn't decode or re-encode it, so even the 2 MB earthquake set returns in about 1.5 ms.
+2. Flask reads the gzip-compressed JSON from Redis and sends those bytes back unchanged with `Content-Encoding: gzip`. The 2 MB earthquake set travels as 307 KB, and the median response is about 5 ms.
 3. Only if Redis is empty (a brand-new deploy) does Flask fetch that one dataset before answering.
 
 **Keeping data fresh**
 1. Every 10 minutes, each worker tries to claim `hazards:refresh:lock` with `SET NX EX`. One wins, and the others skip this round.
 2. The winner fetches both FIRMS satellites and USGS at the same time.
 3. Points are checked and filtered: valid coordinates, inside the coverage area, nominal or high confidence for fires.
-4. Each dataset is written with a 30-minute TTL, and the lock is released with an owner check.
+4. Each dataset is gzip-compressed once and written with a 30-minute TTL. The lock is released with an owner check (a small Lua script).
 
 **Planning a route**
 1. The frontend finds candidate safe zones near the fire through Nominatim.
@@ -82,28 +82,42 @@ flowchart TB
 | **Lock** before refreshing | With several workers, only one calls NASA and USGS per cycle. This saves API quota and avoids rate limits. |
 | **TTL 3× the refresh interval** | If a source goes down, its last good data keeps being served for about 20 minutes instead of disappearing. |
 | Sources refresh **independently** | A USGS outage doesn't block fire updates, and the reverse is true too. |
-| **Serve cached bytes as-is** | Skipping a `json.loads` → `jsonify` round trip made the earthquake endpoint about 20× faster. |
+| **Store hazards gzipped, serve bytes as-is** | Compressed once per refresh instead of per request. Responses and Redis memory are about 7× smaller, and there's no JSON decoding on the hot path. |
 | **Proxy** routing through Flask | API keys stay server-side, and the endpoint only accepts the two routing profiles the app uses. |
 | One service for **API + frontend** | Flask serves the built React app, so there's no CORS setup and one deploy. |
 
 ## Benchmarks
 
-Measured on a MacBook (Apple Silicon) with 2 Gunicorn workers, using the local in-memory cache and live upstream APIs on October 30, 2026. Endpoint numbers are from 100 warm requests each. Refresh numbers are medians of 5 runs.
+Measured on October 30, 2026 on a MacBook (Apple Silicon): 2 Gunicorn workers, **Redis 7.4 in Docker**, live NASA and USGS APIs. Endpoint figures are from 200 warm requests each. Refresh figures are medians of 5 runs. Each row shows one optimization and what it changed.
 
-| What | Before | After | Change |
-|---|---:|---:|---|
-| `GET /api/hazards/earthquakes` (2 MB, ~7,700 events), p50 | 31.2 ms | **1.5 ms** | Serve cached JSON without re-encoding |
-| `GET /api/hazards/fires` (171 KB, ~1,000 detections), p50 | 4.0 ms | **0.7 ms** | Same |
-| NASA FIRMS fetch, both satellites | 1.13 s | **0.58 s** | Fetch satellites in parallel |
-| Full refresh, FIRMS + USGS | 1.27 s | **0.58 s** | Everything in parallel, so the total time is just the slowest request |
+**Serving the map data**
 
-Run it yourself with the server running:
+| `GET /api/hazards/earthquakes` (~7,700 events) | p50 | p95 | Sent to browser |
+|---|---:|---:|---:|
+| Plain JSON in Redis, decoded and re-encoded per request | 31 ms¹ | 33 ms¹ | 1,997 KB |
+| Plain JSON in Redis, sent as-is | 16.7 ms | 41.6 ms | 1,997 KB |
+| **Gzipped in Redis, sent as-is with `Content-Encoding: gzip`** | **5.2 ms** | **8.8 ms** | **307 KB** |
+
+The fires endpoint (~1,000 detections) went from 171 KB to **18 KB** per request, with a p50 of **1.8 ms**. Compressing once in the refresh worker, instead of on every request, also shrinks Redis memory by about 7×.
+
+¹ measured with the in-process cache. Decoding and re-encoding dominated, and Redis would only add to it.
+
+**Refreshing from NASA and USGS**
+
+| | Time |
+|---|---:|
+| FIRMS satellites fetched one after another, then USGS | 1.27 s |
+| **Both satellites and USGS fetched in parallel** | **0.58 s** |
+
+The parallel refresh takes as long as its slowest request (one FIRMS satellite), so adding more sources wouldn't make it slower.
+
+Reproduce with the server running:
 
 ```bash
-cd backend && python scripts/benchmark.py --requests 100 --runs 5
+cd backend && python scripts/benchmark.py --requests 200 --runs 5
 ```
 
-> With a hosted Redis like Upstash, add the network round trip to Redis (usually a few milliseconds in the same region) to the endpoint numbers.
+> A hosted Redis such as Upstash adds a network round trip (typically a few ms in the same region). Gzip helps even more there, since 7× less data crosses that network.
 
 ## Run it locally
 
@@ -179,7 +193,7 @@ safe-route/
 cd backend && python -m pytest
 ```
 
-10 tests cover the cold-start fill, serving from cache without refetching, keeping old data when a source fails, the refresh lock (busy and released), input validation on the routing proxy, and parsing FIRMS CSV and USGS GeoJSON.
+12 tests cover the cold-start fill, serving from cache without refetching, gzip storage and the uncompressed fallback, keeping old data when a source fails, the refresh lock (busy and released), input validation on the routing proxy, and parsing FIRMS CSV and USGS GeoJSON.
 
 ## Deploy
 

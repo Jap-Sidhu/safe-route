@@ -27,18 +27,19 @@ def timed(fn):
     return result, time.perf_counter() - start
 
 
-def endpoint_latency(url: str, n: int) -> tuple[float, float, int]:
+def endpoint_latency(url: str, n: int) -> tuple[float, float, int, int]:
     session = requests.Session()
     session.get(url, timeout=30).raise_for_status()  # warm the cache
     samples = []
-    size = 0
+    size = wire = 0
     for _ in range(n):
         res, secs = timed(lambda: session.get(url, timeout=30))
         res.raise_for_status()
-        size = len(res.content)
+        size = len(res.content)                                  # after decompression
+        wire = int(res.headers.get("Content-Length", size))      # bytes actually sent
         samples.append(secs * 1000)
     samples.sort()
-    return statistics.median(samples), samples[int(len(samples) * 0.95) - 1], size
+    return statistics.median(samples), samples[int(len(samples) * 0.95) - 1], size, wire
 
 
 def main() -> None:
@@ -51,8 +52,9 @@ def main() -> None:
 
     print(f"Cached endpoints ({args.requests} requests each)")
     for kind in ("fires", "earthquakes"):
-        p50, p95, size = endpoint_latency(f"{args.base}/api/hazards/{kind}", args.requests)
-        print(f"  /api/hazards/{kind:<12} p50 {p50:6.1f} ms   p95 {p95:6.1f} ms   {size / 1024:,.0f} KB")
+        p50, p95, size, wire = endpoint_latency(f"{args.base}/api/hazards/{kind}", args.requests)
+        print(f"  /api/hazards/{kind:<12} p50 {p50:6.1f} ms   p95 {p95:6.1f} ms   "
+              f"{size / 1024:,.0f} KB JSON, {wire / 1024:,.0f} KB sent")
 
     fire_job = lambda: sources.fetch_fires(s.firms_map_key, s.firms_days, s.firms_min_frp)  # noqa: E731
     quake_job = lambda: sources.fetch_earthquakes(s.usgs_days)  # noqa: E731

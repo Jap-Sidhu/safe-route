@@ -4,11 +4,14 @@ Production uses Redis (e.g. Upstash) through REDIS_URL. Without it, an in-proces
 memory cache with the same small interface keeps local development dependency-free.
 """
 
+import gzip
 import json
 import logging
 import threading
 import time
-from typing import Any, Optional
+from typing import Any, Optional, Union
+
+Value = Union[str, bytes]
 
 log = logging.getLogger(__name__)
 
@@ -17,10 +20,10 @@ class MemoryCache:
     name = "memory"
 
     def __init__(self) -> None:
-        self._data: dict[str, tuple[str, Optional[float]]] = {}
+        self._data: dict[str, tuple[Value, Optional[float]]] = {}
         self._lock = threading.Lock()
 
-    def _alive(self, key: str) -> Optional[str]:
+    def _alive(self, key: str) -> Optional[Value]:
         item = self._data.get(key)
         if item is None:
             return None
@@ -30,11 +33,11 @@ class MemoryCache:
             return None
         return value
 
-    def get(self, key: str) -> Optional[str]:
+    def get(self, key: str) -> Optional[Value]:
         with self._lock:
             return self._alive(key)
 
-    def set(self, key: str, value: str, ex: Optional[int] = None, nx: bool = False) -> bool:
+    def set(self, key: str, value: Value, ex: Optional[int] = None, nx: bool = False) -> bool:
         with self._lock:
             if nx and self._alive(key) is not None:
                 return False
@@ -59,13 +62,14 @@ class RedisCache:
     def __init__(self, url: str) -> None:
         import redis  # imported lazily so tests and local dev don't need a server
 
-        self._r = redis.Redis.from_url(url, decode_responses=True, socket_timeout=5, health_check_interval=30)
+        # Raw bytes: hazard payloads are stored gzip-compressed and served without decoding.
+        self._r = redis.Redis.from_url(url, socket_timeout=5, health_check_interval=30)
         self._release = self._r.register_script(self._RELEASE)
 
-    def get(self, key: str) -> Optional[str]:
+    def get(self, key: str) -> Optional[bytes]:
         return self._r.get(key)
 
-    def set(self, key: str, value: str, ex: Optional[int] = None, nx: bool = False) -> bool:
+    def set(self, key: str, value: Value, ex: Optional[int] = None, nx: bool = False) -> bool:
         return bool(self._r.set(key, value, ex=ex, nx=nx))
 
     def delete_if_equals(self, key: str, value: str) -> None:
@@ -86,10 +90,20 @@ def make_cache(redis_url: str):
     return MemoryCache()
 
 
+GZIP_MAGIC = b"\x1f\x8b"
+
+
+def is_gzip(raw: Value) -> bool:
+    return isinstance(raw, bytes) and raw[:2] == GZIP_MAGIC
+
+
 def get_json(cache, key: str) -> Optional[Any]:
     raw = cache.get(key)
-    return json.loads(raw) if raw else None
+    if not raw:
+        return None
+    return json.loads(gzip.decompress(raw) if is_gzip(raw) else raw)
 
 
-def set_json(cache, key: str, value: Any, ttl: int) -> None:
-    cache.set(key, json.dumps(value, separators=(",", ":")), ex=ttl)
+def set_json(cache, key: str, value: Any, ttl: int, compress: bool = False) -> None:
+    body = json.dumps(value, separators=(",", ":")).encode()
+    cache.set(key, gzip.compress(body, compresslevel=6) if compress else body, ex=ttl)

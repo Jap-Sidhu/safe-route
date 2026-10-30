@@ -1,5 +1,6 @@
 """SafeRoute API: cached hazard data plus a server-side routing proxy."""
 
+import gzip
 import logging
 import os
 from pathlib import Path
@@ -10,7 +11,7 @@ from flask import Flask, abort, jsonify, request, send_from_directory
 
 load_dotenv()
 
-from cache import get_json, make_cache  # noqa: E402
+from cache import get_json, is_gzip, make_cache  # noqa: E402
 from config import KEY_FIRES, KEY_QUAKES, Settings  # noqa: E402
 from refresher import refresh_once, start_worker  # noqa: E402
 
@@ -40,8 +41,15 @@ def create_app(cache=None, settings: Settings | None = None) -> Flask:
             raw = cache.get(key)
         if raw is None:
             return jsonify(error="Hazard data is temporarily unavailable. Try again in a minute."), 503
-        # The cache already holds serialized JSON, so send it as-is instead of decoding and re-encoding.
-        res = app.response_class(raw, mimetype="application/json")
+        # The cache holds gzip-compressed JSON. Browsers that accept gzip (all of them) get the
+        # stored bytes untouched; anything else gets it decompressed.
+        res = app.response_class(mimetype="application/json")
+        if is_gzip(raw) and "gzip" in request.headers.get("Accept-Encoding", ""):
+            res.set_data(raw)
+            res.headers["Content-Encoding"] = "gzip"
+        else:
+            res.set_data(gzip.decompress(raw) if is_gzip(raw) else raw)
+        res.headers["Vary"] = "Accept-Encoding"
         res.headers["Cache-Control"] = "public, max-age=60"
         return res
 

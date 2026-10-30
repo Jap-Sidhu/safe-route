@@ -1,3 +1,4 @@
+import gzip
 import json
 import sys
 from pathlib import Path
@@ -8,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import sources  # noqa: E402
 from app import create_app  # noqa: E402
-from cache import MemoryCache  # noqa: E402
+from cache import MemoryCache, get_json, is_gzip  # noqa: E402
 from config import KEY_FIRES, KEY_LOCK, KEY_QUAKES, Settings  # noqa: E402
 from refresher import refresh_once  # noqa: E402
 
@@ -64,8 +65,21 @@ def test_failed_source_keeps_previous_cache(cache, settings, monkeypatch):
     status = refresh_once(cache, settings)
 
     assert status[KEY_QUAKES].startswith("failed")
-    assert json.loads(cache.get(KEY_QUAKES))["data"] == [QUAKE]          # old data kept
-    assert json.loads(cache.get(KEY_FIRES))["count"] == 2                 # other source still updated
+    assert get_json(cache, KEY_QUAKES)["data"] == [QUAKE]          # old data kept
+    assert get_json(cache, KEY_FIRES)["count"] == 2                 # other source still updated
+
+
+def test_hazards_stored_and_served_gzipped(client, cache):
+    res = client.get("/api/hazards/fires", headers={"Accept-Encoding": "gzip"})
+    assert res.headers["Content-Encoding"] == "gzip"
+    assert is_gzip(cache.get(KEY_FIRES))
+    assert json.loads(gzip.decompress(res.data))["data"] == [FIRE]
+
+
+def test_hazards_decompressed_for_clients_without_gzip(client):
+    res = client.get("/api/hazards/fires", headers={"Accept-Encoding": "identity"})
+    assert "Content-Encoding" not in res.headers
+    assert res.json["data"] == [FIRE]
 
 
 def test_lock_prevents_duplicate_refresh(cache, settings):
