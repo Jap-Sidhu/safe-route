@@ -190,6 +190,8 @@ safe-route/
 │       ├── hooks/           Live status polling (/api/health)
 │       └── Components/      Layout (top bar, footer), Homepage, Map, SafetyGuide
 ├── docs/
+├── api/index.py          Vercel serverless entry point
+├── vercel.json           Vercel build, function and routing config
 ├── render.yaml           Render deployment (single web service)
 └── LICENSE
 ```
@@ -200,11 +202,23 @@ safe-route/
 cd backend && python -m pytest
 ```
 
-16 tests cover the cold-start fill, waiting for a refresh already in progress, serving from cache without refetching, gzip storage and the uncompressed fallback, ETag / 304 handling, the health check, keeping old data when a source fails, the refresh lock (busy and released), input validation on the routing proxy, and parsing FIRMS CSV and USGS GeoJSON.
+19 tests cover the cold-start fill, waiting for a refresh already in progress, serving from cache without refetching, gzip storage and the uncompressed fallback, ETag / 304 handling, CDN cache headers, serverless mode, the health check, keeping old data when a source fails, the refresh lock (busy and released), input validation on the routing proxy, and parsing FIRMS CSV and USGS GeoJSON.
 
 ## Deploy
 
-`render.yaml` defines one Render web service that installs both halves, builds the React app, and starts Gunicorn. Add `FIRMS_MAP_KEY` and `ORS_API_KEY` in the Render dashboard. That's the only setup.
+### Vercel (recommended, free)
+
+`vercel.json` builds the React app as static files and runs Flask as a Python serverless function (`api/index.py`) for every `/api/*` request.
+
+1. Push the repo to GitHub, then on [vercel.com](https://vercel.com) choose **Add New → Project** and import it. Leave the framework preset as **Other**, since `vercel.json` sets the build.
+2. Under **Environment Variables**, add `FIRMS_MAP_KEY` and `ORS_API_KEY`.
+3. Click **Deploy**, then open `https://<your-project>.vercel.app/api/health` to check it.
+
+Serverless functions don't stay running, so the background refresh thread is switched off on Vercel automatically (it detects `VERCEL=1`). Caching moves to Vercel's CDN instead. Hazard responses are sent with `s-maxage=600, stale-while-revalidate=1800`, so the edge serves cached data for 10 minutes and then refreshes it in the background. NASA and USGS are still called about once per 10 minutes per region, however many people visit.
+
+### Render
+
+`render.yaml` defines one always-on web service: Gunicorn with one process and 8 threads, using the in-memory cache and background refresher. Add `FIRMS_MAP_KEY` and `ORS_API_KEY` in the Render dashboard.
 
 ## Know the limits
 

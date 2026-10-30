@@ -27,7 +27,9 @@ class Settings:
     # USGS: days of earthquakes to pull.
     usgs_days: int = field(default_factory=lambda: _int("USGS_DAYS", 30))
 
-    run_worker: bool = field(default_factory=lambda: os.getenv("RUN_REFRESH_WORKER", "1") != "0")
+    # The background refresh thread needs a long-running server. On serverless hosts like
+    # Vercel (which sets VERCEL=1) it's off, and the CDN cache headers do that job instead.
+    run_worker: bool = field(default_factory=lambda: os.getenv("RUN_REFRESH_WORKER", "0" if os.getenv("VERCEL") else "1") != "0")
 
 
 # Coverage area: Canada for fires, North America (north of 24°N) for earthquakes.

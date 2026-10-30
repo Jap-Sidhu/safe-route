@@ -112,6 +112,23 @@ def test_cold_request_waits_for_running_refresh(cache, settings, monkeypatch):
     assert res.json["data"] == [FIRE]
 
 
+def test_hazards_cacheable_by_cdn(client, settings):
+    cc = client.get("/api/hazards/fires").headers["Cache-Control"]
+    assert f"s-maxage={settings.refresh_interval}" in cc
+    assert "stale-while-revalidate" in cc
+
+
+def test_worker_off_on_vercel(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.delenv("RUN_REFRESH_WORKER", raising=False)
+    assert Settings().run_worker is False
+
+
+def test_health_fetches_on_demand_without_worker(client):
+    datasets = client.get("/api/health").json["datasets"]   # fixture has run_worker=False
+    assert datasets[KEY_FIRES]["count"] == 1 and datasets[KEY_QUAKES]["count"] == 1
+
+
 def test_health_reports_counts(client):
     client.get("/api/hazards/earthquakes")
     datasets = client.get("/api/health").json["datasets"]

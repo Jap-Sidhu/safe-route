@@ -70,13 +70,22 @@ def create_app(cache=None, settings: Settings | None = None) -> Flask:
                 res.set_data(gzip.decompress(raw) if is_gzip(raw) else raw)
         res.headers["ETag"] = etag
         res.headers["Vary"] = "Accept-Encoding"
-        res.headers["Cache-Control"] = "public, max-age=60"
+        # Browsers re-check after a minute. Shared caches (Vercel's CDN) keep it for the refresh
+        # interval and keep serving the old copy while fetching a new one in the background.
+        res.headers["Cache-Control"] = (f"public, max-age=60, s-maxage={settings.refresh_interval}, "
+                                        f"stale-while-revalidate={settings.cache_ttl}")
         return res
 
     @app.get("/api/health")
     def health():
-        datasets = {key: get_meta(cache, key) for key in (KEY_FIRES, KEY_QUAKES)}
-        return jsonify(status="ok", cache=cache.name, datasets=datasets)
+        datasets = {}
+        for key in (KEY_FIRES, KEY_QUAKES):
+            if not settings.run_worker:
+                load(key)  # no background worker (serverless): fetch on demand so health isn't empty
+            datasets[key] = get_meta(cache, key)
+        res = jsonify(status="ok", cache=cache.name, datasets=datasets)
+        res.headers["Cache-Control"] = "public, max-age=30, s-maxage=60"
+        return res
 
     @app.get("/api/hazards/fires")
     def fires():

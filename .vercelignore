@@ -1,0 +1,8 @@
+backend/.venv
+backend/.env
+backend/tests
+backend/scripts
+frontend/node_modules
+frontend/dist
+docs
+render.yaml
